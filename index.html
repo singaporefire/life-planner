@@ -867,6 +867,19 @@ canvas{max-width:100%;display:block}
   </div>
 </div>
 
+<!-- Logout Confirm -->
+<div class="mo" id="mo-logout">
+  <div class="mb" style="text-align:center">
+    <div style="font-size:40px;margin-bottom:8px">👋</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px">確認登出？</div>
+    <div style="font-size:13px;color:var(--tx2);margin-bottom:20px">你的資料已儲存在雲端，下次登入即可恢復。</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn bg bb" id="btn-logout-cancel" style="flex:1">取消</button>
+      <button class="btn bd bb" id="btn-logout-confirm" style="flex:1">登出</button>
+    </div>
+  </div>
+</div>
+
 <!-- Budget -->
 <div class="mo" id="mo-bgt">
   <div class="mb">
@@ -2010,8 +2023,14 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').cat
 
 // Logout + manual sync buttons
 document.getElementById('btn-logout').addEventListener('click',()=>{
-  if(!confirm('確認登出？登出後需重新登入才能查看資料。'))return;
-  fauth.signOut().then(()=>{snk('👋 已登出');});
+  openM('mo-logout');
+});
+document.getElementById('btn-logout-confirm').addEventListener('click',()=>{
+  closeM('mo-logout');
+  fauth.signOut();
+});
+document.getElementById('btn-logout-cancel').addEventListener('click',()=>{
+  closeM('mo-logout');
 });
 document.getElementById('btn-sync-now').addEventListener('click',async()=>{
   save();snk('☁️ 正在同步...');
