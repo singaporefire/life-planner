@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#6C63FF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="生活規劃">
+<title>生活規劃家 · Life Planner</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --P:#6C63FF;--PD:#5a52d0;--PL:#EEEEFF;
+  --ok:#22c55e;--bad:#ef4444;--warn:#f59e0b;--blue:#3b82f6;
+  --bg:#F7F8FF;--sur:#fff;--sur2:#F0F1FA;--bdr:#e5e7eb;
+  --tx:#1a1a2e;--tx2:#6b7280;
+  --rad:16px;--rads:10px;--shd:0 4px 20px rgba(108,99,255,.11);
+  --fn:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100dvh;overflow-x:hidden}
+#app{max-width:480px;margin:0 auto;position:relative;min-height:100dvh}
+
+/* NAV */
+#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
+  background:var(--sur);border-top:1px solid var(--bdr);display:flex;z-index:100;
+  padding-bottom:env(safe-area-inset-bottom);overflow-x:auto;scrollbar-width:none}
+#nav::-webkit-scrollbar{display:none}
+.nb{flex:0 0 calc(100%/8);min-width:48px;display:flex;flex-direction:column;align-items:center;
+  gap:2px;padding:8px 2px 6px;border:none;background:none;cursor:pointer;
+  color:var(--tx2);font-size:9px;font-family:var(--fn);transition:color .2s;white-space:nowrap}
+.nb .i{font-size:19px;transition:transform .2s}
+.nb.on{color:var(--P)}.nb.on .i{transform:translateY(-2px)}
+
+/* PAGES */
+.pg{display:none;flex-direction:column;padding:0 0 82px;min-height:100dvh}
+.pg.on{display:flex}
+
+/* HEADER */
+.hdr{padding:50px 18px 16px;background:linear-gradient(135deg,var(--P),#9b59b6);color:#fff;position:relative;overflow:hidden}
+.hdr::before{content:'';position:absolute;top:-40px;right:-40px;width:130px;height:130px;background:rgba(255,255,255,.09);border-radius:50%}
+.hdr h1{font-size:20px;font-weight:700}
+.hdr .sub{font-size:12px;opacity:.8;margin-top:2px}
+.acc-badge{position:absolute;top:12px;right:14px;background:rgba(255,255,255,.22);border-radius:20px;
+  padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid rgba(255,255,255,.35);
+  display:flex;align-items:center;gap:5px}
+
+/* CARD */
+.card{background:var(--sur);border-radius:var(--rad);padding:16px;margin:12px 14px 0;box-shadow:var(--shd)}
+.ct{font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:9px 16px;border-radius:var(--rads);
+  border:none;cursor:pointer;font-family:var(--fn);font-size:14px;font-weight:600;transition:all .15s}
+.bp{background:var(--P);color:#fff}.bp:active{background:var(--PD)}
+.bd{background:var(--bad);color:#fff}
+.bg{background:var(--sur2);color:var(--tx)}
+.bs{padding:5px 11px;font-size:12px;border-radius:8px}
+.bb{width:100%;justify-content:center}
+
+/* FAB */
+.fab{position:fixed;bottom:86px;right:18px;width:50px;height:50px;border-radius:50%;
+  background:var(--P);color:#fff;border:none;font-size:22px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(108,99,255,.38);z-index:99;transition:transform .15s}
+.fab:active{transform:scale(.93)}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.mo.on{display:flex}
+.mb{background:var(--sur);border-radius:22px 22px 0 0;padding:18px 18px 34px;
+  width:100%;max-width:480px;max-height:92dvh;overflow-y:auto;animation:up .22s ease}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mt{font-size:17px;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.mc{background:none;border:none;font-size:21px;cursor:pointer;color:var(--tx2)}
+
+/* FORM */
+.fg{margin-bottom:13px}
+.fl{font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:5px;display:block}
+.fc{width:100%;padding:10px 13px;border:1.5px solid var(--bdr);border-radius:var(--rads);
+  font-family:var(--fn);font-size:15px;color:var(--tx);background:var(--sur);outline:none;transition:border-color .15s}
+.fc:focus{border-color:var(--P)}
+textarea.fc{resize:vertical;min-height:80px;line-height:1.5}
+select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* TAGS */
+.tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:3px}
+.tag{padding:5px 11px;border-radius:18px;font-size:13px;font-weight:500;cursor:pointer;
+  border:1.5px solid transparent;background:var(--sur2);color:var(--tx);transition:all .15s}
+.tag.sel{border-color:var(--P);background:var(--PL);color:var(--P)}
+.tsm{padding:3px 9px;font-size:11px}
+
+/* STAT */
+.srow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.srow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.sbox{background:var(--sur);border-radius:var(--rad);padding:13px;box-shadow:var(--shd);text-align:center}
+.snum{font-size:20px;font-weight:800}.slbl{font-size:11px;color:var(--tx2);margin-top:2px}
+.inc{color:var(--ok)}.exp{color:var(--bad)}
+
+/* LIST ITEMS */
+.li{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid var(--bdr)}
+.li:last-child{border-bottom:none}
+.ldot{width:9px;height:9px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.linfo{flex:1}.ltitle{font-size:14px;font-weight:600}.lmeta{font-size:11px;color:var(--tx2);margin-top:1px}
+.lact{display:flex;gap:5px;align-items:center}
+
+/* COUNTDOWN */
+.cdi{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--bdr)}
+.cdi:last-child{border-bottom:none}
+.cdb{min-width:54px;text-align:center;border-radius:var(--rads);padding:6px 4px}
+.cdb .num{font-size:21px;font-weight:800;line-height:1}.cdb .unit{font-size:10px;font-weight:600}
+
+/* GOALS */
+.gi{padding:13px 0;border-bottom:1px solid var(--bdr)}
+.gi:last-child{border-bottom:none}
+.gtop{display:flex;align-items:center;justify-content:space-between}
+.gname{font-size:14px;font-weight:600}
+.pb{height:6px;background:var(--sur2);border-radius:3px;margin:7px 0;overflow:hidden}
+.pf{height:100%;background:linear-gradient(90deg,var(--P),#9b59b6);border-radius:3px;transition:width .4s}
+.gmeta{font-size:11px;color:var(--tx2)}
+.ckb{padding:5px 12px;border-radius:18px;border:2px solid var(--P);background:none;
+  color:var(--P);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
+.ckb.done{background:var(--P);color:#fff}
+
+/* HEATMAP */
+.hm{display:flex;flex-wrap:wrap;gap:3px;margin-top:7px}
+.hc{width:11px;height:11px;border-radius:2px;background:var(--sur2)}
+.hc.l1{background:#c4b5fd}.hc.l2{background:#a78bfa}.hc.l3{background:#7c3aed}
+
+/* FINANCE */
+.txi{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--bdr)}
+.txi:last-child{border-bottom:none}
+.txic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.txinfo{flex:1}.txcat{font-size:14px;font-weight:600}.txn{font-size:11px;color:var(--tx2)}
+.txamt{font-size:15px;font-weight:700}
+.bbi{margin-bottom:13px}
+.bbl{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.bbr{height:8px;background:var(--sur2);border-radius:4px;overflow:hidden}
+.bbf{height:100%;border-radius:4px;transition:width .4s}
+
+/* HEALTH */
+.hli{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--bdr)}
+.hli:last-child{border-bottom:none}
+.hlb{width:42px;height:42px;border-radius:11px;background:var(--PL);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.hlinfo{flex:1}.hldate{font-size:11px;color:var(--tx2)}.hlval{font-size:14px;font-weight:600}
+.stars{display:flex;gap:4px}
+.star{font-size:19px;cursor:pointer}
+.moodg{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:4px}
+.moodbtn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 3px;
+  border-radius:var(--rads);border:2px solid transparent;background:var(--sur2);cursor:pointer;font-size:10px;transition:all .15s}
+.moodbtn.sel{border-color:var(--P);background:var(--PL)}
+.moodbtn .em{font-size:22px}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.metric-box{background:var(--sur2);border-radius:var(--rads);padding:10px 12px}
+.metric-lbl{font-size:11px;color:var(--tx2);margin-bottom:4px}
+.metric-input{display:flex;align-items:center;gap:6px}
+.metric-input .fc{padding:8px 10px;font-size:15px}
+
+/* NOTES */
+.ni{padding:13px 0;border-bottom:1px solid var(--bdr);cursor:pointer}
+.ni:last-child{border-bottom:none}
+.ni:active{background:var(--sur2);margin:0 -16px;padding:13px 16px;border-radius:var(--rads)}
+.ntitle{font-size:14px;font-weight:700;margin-bottom:3px}
+.nbody{font-size:13px;color:var(--tx2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.nmeta{font-size:11px;color:var(--tx2);margin-top:5px;display:flex;align-items:center;gap:8px}
+.ntag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:var(--PL);color:var(--P)}
+.note-view{position:fixed;inset:0;background:var(--sur);z-index:150;display:none;flex-direction:column;max-width:480px;margin:0 auto}
+.note-view.on{display:flex}
+.note-view-hdr{padding:50px 16px 14px;background:linear-gradient(135deg,var(--P),#9b59b6);color:#fff;flex-shrink:0}
+.note-view-body{flex:1;overflow-y:auto;padding:16px;white-space:pre-wrap;font-size:15px;line-height:1.7}
+.note-search{position:relative;margin-bottom:12px}
+.note-search .fc{padding-left:36px}
+.note-search::before{content:'🔍';position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;z-index:1}
+
+/* DAY PILLS */
+.dpills{display:flex;gap:6px;flex-wrap:wrap}
+.dp{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--bdr);
+  background:var(--sur2);color:var(--tx2);transition:all .15s}
+.dp.sel{background:var(--P);color:#fff;border-color:var(--P)}
+
+/* SETTINGS */
+.sr{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--bdr)}
+.sr:last-child{border-bottom:none}
+.slbl{font-size:15px;font-weight:500}.ssub{font-size:11px;color:var(--tx2);margin-top:2px}
+.sw{position:relative;width:44px;height:24px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0}
+.swslide{position:absolute;inset:0;background:var(--bdr);border-radius:12px;transition:.3s;cursor:pointer}
+.swslide::before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.sw input:checked+.swslide{background:var(--P)}
+.sw input:checked+.swslide::before{transform:translateX(20px)}
+.swatches{display:flex;gap:9px}
+.sw2{width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border-color .15s}
+.sw2.on{border-color:var(--tx)}
+
+/* ACCOUNT */
+.acci{display:flex;align-items:center;gap:11px;padding:13px 0;border-bottom:1px solid var(--bdr);cursor:pointer}
+.acci:last-child{border-bottom:none}
+.acav{width:42px;height:42px;border-radius:50%;background:var(--PL);display:flex;align-items:center;
+  justify-content:center;font-size:21px;border:2px solid transparent}
+.acav.cur{border-color:var(--P)}
+
+/* ACTIVITY LOG */
+.act-item{padding:12px 0;border-bottom:1px solid var(--bdr)}
+.act-item:last-child{border-bottom:none}
+.act-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.act-type-badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:var(--PL);color:var(--P)}
+.act-date{font-size:11px;color:var(--tx2);margin-left:auto}
+.act-rows{display:flex;flex-direction:column;gap:6px}
+.act-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:6px;align-items:center;background:var(--sur2);border-radius:8px;padding:8px 10px}
+.act-row-cardio{display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;align-items:center;background:var(--sur2);border-radius:8px;padding:8px 10px}
+.act-row .lbl{font-size:12px;font-weight:600}
+.act-row .val{font-size:12px;color:var(--tx2);text-align:center}
+.set-builder{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.set-row{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr auto;gap:6px;align-items:center}
+.set-row .fc{padding:7px 8px;font-size:13px}
+.set-row-cardio{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:6px;align-items:center}
+
+/* WALLET */
+.wallet-item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--bdr)}
+.wallet-item:last-child{border-bottom:none}
+.wallet-em{width:38px;height:38px;border-radius:10px;background:var(--PL);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.wallet-name{font-size:14px;font-weight:600;flex:1}
+.wallet-bal{font-size:14px;font-weight:700;color:var(--P)}
+.wallet-sel-tag{padding:5px 11px;border-radius:18px;font-size:13px;font-weight:500;cursor:pointer;
+  border:1.5px solid transparent;background:var(--sur2);color:var(--tx);transition:all .15s;display:flex;align-items:center;gap:5px}
+.wallet-sel-tag.sel{border-color:var(--P);background:var(--PL);color:var(--P)}
+
+/* MISC */
+.empty{text-align:center;padding:28px 14px;color:var(--tx2)}
+.empty .ei{font-size:44px;display:block;margin-bottom:7px}
+.dvd{height:1px;background:var(--bdr);margin:11px 0}
+.snk{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:#1a1a2e;
+  color:#fff;padding:9px 18px;border-radius:18px;font-size:13px;z-index:400;
+  opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+.snk.on{opacity:1}
+canvas{max-width:100%;display:block}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ══ ACCOUNT MODAL ══ -->
+<div class="mo" id="mo-acc">
+  <div class="mb">
+    <div class="mt">帳戶管理 · Accounts<button class="mc" data-close="mo-acc">✕</button></div>
+    <div id="acc-list"></div>
+    <div class="dvd"></div>
+    <div class="fg" style="margin-top:10px">
+      <label class="fl">新增帳戶</label>
+      <div class="tags" id="acc-em-pick" style="flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px">
+        <span class="tag tsm sel" data-em="👤">👤</span>
+        <span class="tag tsm" data-em="👨">👨</span><span class="tag tsm" data-em="👩">👩</span>
+        <span class="tag tsm" data-em="🧒">🧒</span><span class="tag tsm" data-em="👴">👴</span>
+        <span class="tag tsm" data-em="🐶">🐶</span><span class="tag tsm" data-em="⭐">⭐</span>
+        <span class="tag tsm" data-em="🌟">🌟</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input type="text" id="new-acc-name" class="fc" placeholder="帳戶名稱..." style="flex:1">
+        <button class="btn bp bs" id="btn-add-acc">新增</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ══ -->
+<div id="pg-dash" class="pg on">
+  <div class="hdr">
+    <div class="acc-badge" id="hdr-acc-btn">👤 <span id="hdr-acc-name">帳戶</span></div>
+    <div class="sub" id="dash-date"></div>
+    <h1 id="dash-greet"></h1>
+    <div class="sub" id="dash-quote" style="margin-top:5px;font-size:11px;opacity:.75"></div>
+  </div>
+  <div class="srow" style="margin:13px 14px 0">
+    <div class="sbox"><div class="snum inc" id="d-inc">$0</div><div class="slbl">本月收入</div></div>
+    <div class="sbox"><div class="snum exp" id="d-exp">$0</div><div class="slbl">本月支出</div></div>
+  </div>
+  <div class="card">
+    <div class="ct">今日健康快覽</div>
+    <div id="d-health"></div>
+  </div>
+  <div class="card">
+    <div class="ct">倒數事件</div>
+    <div id="d-cd"></div>
+  </div>
+  <div class="card">
+    <div class="ct">今日目標打卡</div>
+    <div id="d-goals"></div>
+  </div>
+  <div class="card">
+    <div class="ct">今日行程</div>
+    <div id="d-evts"></div>
+  </div>
+  <div class="card">
+    <div class="ct">最新筆記</div>
+    <div id="d-notes"></div>
+  </div>
+</div>
+
+<!-- ══ CALENDAR ══ -->
+<div id="pg-cal" class="pg">
+  <div class="hdr">
+    <div class="sub">行事曆 · Calendar</div>
+    <h1 id="cal-title"></h1>
+  </div>
+  <div class="card" style="margin-top:-8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <button class="btn bg bs" id="cal-prev">‹</button>
+      <span id="cal-lbl" style="font-weight:700;font-size:15px"></span>
+      <button class="btn bg bs" id="cal-next">›</button>
+    </div>
+    <div id="cal-grid"></div>
+  </div>
+  <div class="card">
+    <div class="ct" id="cal-day-lbl"></div>
+    <div id="cal-day-evts"></div>
+  </div>
+  <button class="fab" id="btn-add-evt">＋</button>
+</div>
+
+<!-- ══ COUNTDOWNS ══ -->
+<div id="pg-cd" class="pg">
+  <div class="hdr">
+    <div class="sub">事件倒數 · Countdown</div>
+    <h1>重要日子追蹤</h1>
+  </div>
+  <div class="card"><div id="cd-list"></div></div>
+  <button class="fab" id="btn-add-cd">＋</button>
+</div>
+
+<!-- ══ GOALS ══ -->
+<div id="pg-goals" class="pg">
+  <div class="hdr">
+    <div class="sub">目標管理 · Goals</div>
+    <h1>打卡 · 追蹤 · 成長</h1>
+  </div>
+  <div class="card"><div id="goals-list"></div></div>
+  <button class="fab" id="btn-add-goal">＋</button>
+</div>
+
+<!-- ══ HEALTH ══ -->
+<div id="pg-health" class="pg">
+  <div class="hdr">
+    <div class="sub">健康記錄 · Health</div>
+    <h1 id="hlth-hdr">今日健康狀況</h1>
+  </div>
+  <div class="card" style="margin-top:-8px">
+    <div class="ct">今日記錄</div>
+    <div class="metrics">
+      <div class="metric-box">
+        <div class="metric-lbl">🌅 起床時間</div>
+        <input type="time" id="h-wake" class="fc" style="padding:7px 10px">
+      </div>
+      <div class="metric-box">
+        <div class="metric-lbl">🌙 睡覺時間</div>
+        <input type="time" id="h-sleep" class="fc" style="padding:7px 10px">
+      </div>
+      <div class="metric-box">
+        <div class="metric-lbl">⚖️ 體重 (kg)</div>
+        <input type="number" id="h-weight" class="fc" step="0.1" placeholder="70.0" style="padding:7px 10px">
+      </div>
+      <div class="metric-box">
+        <div class="metric-lbl">💧 飲水 (杯)</div>
+        <input type="number" id="h-water" class="fc" placeholder="8" style="padding:7px 10px">
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">💤 睡眠品質</label>
+      <div class="stars" id="sleep-stars">
+        <span class="star" data-v="1">☆</span><span class="star" data-v="2">☆</span>
+        <span class="star" data-v="3">☆</span><span class="star" data-v="4">☆</span><span class="star" data-v="5">☆</span>
+        <span id="sq-lbl" style="font-size:12px;color:var(--tx2);margin-left:6px;line-height:26px"></span>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">😊 精神狀態</label>
+      <div class="moodg" id="mood-g">
+        <div class="moodbtn" data-m="1"><span class="em">😫</span><span>很差</span></div>
+        <div class="moodbtn" data-m="2"><span class="em">😕</span><span>欠佳</span></div>
+        <div class="moodbtn" data-m="3"><span class="em">😐</span><span>一般</span></div>
+        <div class="moodbtn" data-m="4"><span class="em">😊</span><span>良好</span></div>
+        <div class="moodbtn" data-m="5"><span class="em">🤩</span><span>極佳</span></div>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">📝 備注</label>
+      <input type="text" id="h-note" class="fc" placeholder="今日狀況備注...">
+    </div>
+    <button class="btn bp bb" id="btn-save-hlth">💾 儲存今日健康記錄</button>
+  </div>
+  <div class="card">
+    <div class="ct" style="display:flex;justify-content:space-between">
+      <span>體重趨勢 (14天)</span><span id="w-avg" style="font-weight:700;color:var(--P)"></span>
+    </div>
+    <canvas id="w-chart" height="110" style="margin-top:4px"></canvas>
+  </div>
+  <div class="card">
+    <div class="ct" style="display:flex;justify-content:space-between;align-items:center">
+      <span>活動 / 訓練記錄</span>
+      <button class="btn bp bs" onclick="openActModal()">＋ 新增</button>
+    </div>
+    <div id="act-list"></div>
+  </div>
+  <div class="card">
+    <div class="ct">健康記錄歷史</div>
+    <div id="hlth-hist"></div>
+  </div>
+</div>
+
+<!-- ══ NOTES ══ -->
+<div id="pg-notes" class="pg">
+  <div class="hdr">
+    <div class="sub">日記・筆記 · Notes</div>
+    <h1 id="notes-hdr">記錄每一天</h1>
+  </div>
+  <div class="card" style="margin-top:-8px">
+    <div class="note-search">
+      <input type="text" id="note-search" class="fc" placeholder="搜尋筆記...">
+    </div>
+    <div class="tags" id="note-tag-filter" style="margin-bottom:10px">
+      <span class="tag tsm sel" data-tf="all">全部</span>
+      <span class="tag tsm" data-tf="日記">📔 日記</span>
+      <span class="tag tsm" data-tf="想法">💡 想法</span>
+      <span class="tag tsm" data-tf="工作">💼 工作</span>
+      <span class="tag tsm" data-tf="學習">📚 學習</span>
+      <span class="tag tsm" data-tf="其他">📌 其他</span>
+    </div>
+    <div id="notes-list"></div>
+  </div>
+  <button class="fab" id="btn-add-note">＋</button>
+</div>
+<!-- Note view overlay -->
+<div class="note-view" id="note-view">
+  <div class="note-view-hdr">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-size:11px;opacity:.8" id="nv-meta"></div>
+        <div style="font-size:18px;font-weight:700;margin-top:4px" id="nv-title"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;margin-left:10px">
+        <button class="btn bg bs" id="nv-edit" style="font-size:13px">✏️ 編輯</button>
+        <button class="btn bg bs" onclick="closeNoteView()">✕</button>
+      </div>
+    </div>
+  </div>
+  <div class="note-view-body" id="nv-body"></div>
+</div>
+
+<!-- ══ FINANCE ══ -->
+<div id="pg-fin" class="pg">
+  <div class="hdr">
+    <div class="sub">個人記帳 · Finance</div>
+    <h1 id="fin-hdr"></h1>
+  </div>
+  <div class="srow" style="margin:13px 14px 0">
+    <div class="sbox"><div class="snum inc" id="f-inc">$0</div><div class="slbl">收入</div></div>
+    <div class="sbox"><div class="snum exp" id="f-exp">$0</div><div class="slbl">支出</div></div>
+  </div>
+  <div class="srow" style="margin:8px 14px 0">
+    <div class="sbox"><div class="snum" id="f-bal" style="color:var(--P)">$0</div><div class="slbl">結餘</div></div>
+    <div class="sbox"><div class="snum" id="f-sav" style="color:var(--blue)">$0</div><div class="slbl">總存款</div></div>
+  </div>
+  <div style="display:flex;gap:8px;margin:11px 14px 0">
+    <button class="btn bg bs" id="fin-prev">‹ 上月</button>
+    <span id="fin-nav" style="flex:1;text-align:center;line-height:30px;font-weight:700;font-size:14px"></span>
+    <button class="btn bg bs" id="fin-next">下月 ›</button>
+  </div>
+  <div class="card">
+    <div class="ct" style="display:flex;justify-content:space-between;align-items:center">
+      <span>💳 錢包概覽</span>
+      <button class="btn bg bs" id="btn-wallets">管理錢包</button>
+    </div>
+    <div id="wallet-overview"></div>
+  </div>
+  <div class="card"><div class="ct">預算概覽</div><div id="bgt-bars"></div></div>
+  <div class="card"><div class="ct">分類統計</div><canvas id="pie" height="190"></canvas></div>
+  <div class="card"><div class="ct">交易記錄</div><div id="tx-list"></div></div>
+  <div style="margin:11px 14px;display:flex;gap:8px">
+    <button class="btn bg bs" id="btn-csv" style="flex:1;justify-content:center">📥 匯出CSV</button>
+    <button class="btn bg bs" id="btn-bgt" style="flex:1;justify-content:center">🎯 設定預算</button>
+  </div>
+  <button class="fab" id="btn-add-tx">＋</button>
+</div>
+
+<!-- ══ SETTINGS ══ -->
+<div id="pg-set" class="pg">
+  <div class="hdr">
+    <div class="sub">Settings / 設定</div>
+    <h1>個人化設定</h1>
+  </div>
+  <div class="card">
+    <div class="ct">帳戶</div>
+    <div class="sr">
+      <div><div class="slbl">帳戶管理</div><div class="ssub" id="cur-acc-sub"></div></div>
+      <button class="btn bg bs" id="btn-open-acc">切換 ›</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">一般</div>
+    <div class="sr">
+      <div><div class="slbl">語言</div></div>
+      <select class="fc" id="lang-sel" style="width:auto;padding:6px 26px 6px 10px">
+        <option value="zh">繁中</option><option value="en">English</option>
+      </select>
+    </div>
+    <div class="sr">
+      <div><div class="slbl">貨幣</div></div>
+      <select class="fc" id="cur-sel" style="width:auto;padding:6px 26px 6px 10px">
+        <option value="HK$">HK$</option><option value="$">$</option><option value="NT$">NT$</option>
+        <option value="¥">¥</option><option value="€">€</option><option value="£">£</option>
+      </select>
+    </div>
+    <div class="sr">
+      <div><div class="slbl">主題色</div></div>
+      <div class="swatches" id="theme-sw">
+        <div class="sw2 on" data-c="#6C63FF" style="background:#6C63FF"></div>
+        <div class="sw2" data-c="#0ea5e9" style="background:#0ea5e9"></div>
+        <div class="sw2" data-c="#10b981" style="background:#10b981"></div>
+        <div class="sw2" data-c="#f59e0b" style="background:#f59e0b"></div>
+        <div class="sw2" data-c="#ef4444" style="background:#ef4444"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">存款</div>
+    <div class="sr">
+      <div><div class="slbl">目前存款</div></div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="number" id="sav-inp" class="fc" style="width:100px;text-align:right;padding:7px 10px" placeholder="0">
+        <button class="btn bp bs" id="btn-sav">儲存</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">資料管理</div>
+    <div class="sr">
+      <div><div class="slbl">匯出備份</div><div class="ssub">下載 JSON</div></div>
+      <button class="btn bg bs" id="btn-exp">📤</button>
+    </div>
+    <div class="sr">
+      <div><div class="slbl">匯入備份</div><div class="ssub">從 JSON 恢復</div></div>
+      <label class="btn bg bs" style="cursor:pointer">📥<input type="file" id="imp-file" accept=".json" style="display:none"></label>
+    </div>
+    <div class="sr">
+      <div><div class="slbl" style="color:var(--bad)">清除此帳戶資料</div></div>
+      <button class="btn bd bs" id="btn-clr">🗑️</button>
+    </div>
+  </div>
+  <div style="text-align:center;color:var(--tx2);font-size:11px;padding:18px">生活規劃家 v2.1 · All data stored locally</div>
+</div>
+
+<!-- ══ NAV ══ -->
+<nav id="nav">
+  <button class="nb on" data-pg="dash"><span class="i">🏠</span>主頁</button>
+  <button class="nb" data-pg="cal"><span class="i">📅</span>行事曆</button>
+  <button class="nb" data-pg="cd"><span class="i">⏳</span>倒數</button>
+  <button class="nb" data-pg="goals"><span class="i">🎯</span>目標</button>
+  <button class="nb" data-pg="health"><span class="i">💪</span>健康</button>
+  <button class="nb" data-pg="notes"><span class="i">📓</span>筆記</button>
+  <button class="nb" data-pg="fin"><span class="i">💰</span>記帳</button>
+  <button class="nb" data-pg="set"><span class="i">⚙️</span>設定</button>
+</nav>
+</div><!-- /app -->
+
+<!-- ══ MODALS ══ -->
+<!-- Event -->
+<div class="mo" id="mo-evt">
+  <div class="mb">
+    <div class="mt"><span id="mo-evt-title">新增行程</span><button class="mc" data-close="mo-evt">✕</button></div>
+    <input type="hidden" id="evt-id">
+    <div class="fg"><label class="fl">行程名稱</label><input type="text" id="evt-name" class="fc" placeholder="e.g. 醫生約診"></div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">日期</label><input type="date" id="evt-date" class="fc"></div>
+      <div class="fg"><label class="fl">時間</label><input type="time" id="evt-time" class="fc"></div>
+    </div>
+    <div class="fg"><label class="fl">重複</label>
+      <select id="evt-rep" class="fc">
+        <option value="none">不重複</option><option value="daily">每日</option>
+        <option value="weekly">每週</option><option value="monthly">每月</option><option value="yearly">每年</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">顏色</label>
+      <div class="tags" id="evt-colors">
+        <span class="tag sel" data-c="#6C63FF">🟣 紫</span><span class="tag" data-c="#0ea5e9">🔵 藍</span>
+        <span class="tag" data-c="#10b981">🟢 綠</span><span class="tag" data-c="#f59e0b">🟡 黃</span><span class="tag" data-c="#ef4444">🔴 紅</span>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">備注</label><input type="text" id="evt-note" class="fc" placeholder="選填"></div>
+    <button class="btn bp bb" id="btn-save-evt">儲存</button>
+  </div>
+</div>
+
+<!-- Countdown -->
+<div class="mo" id="mo-cd">
+  <div class="mb">
+    <div class="mt">新增倒數<button class="mc" data-close="mo-cd">✕</button></div>
+    <input type="hidden" id="cd-id">
+    <div class="fg"><label class="fl">事件名稱</label><input type="text" id="cd-name" class="fc"></div>
+    <div class="fg"><label class="fl">目標日期</label><input type="date" id="cd-date" class="fc"></div>
+    <div class="fg"><label class="fl">圖示</label>
+      <div class="tags" id="cd-icons">
+        <span class="tag sel" data-ic="🎂">🎂</span><span class="tag" data-ic="✈️">✈️</span>
+        <span class="tag" data-ic="📅">📅</span><span class="tag" data-ic="💼">💼</span>
+        <span class="tag" data-ic="🎓">🎓</span><span class="tag" data-ic="❤️">❤️</span>
+        <span class="tag" data-ic="🏆">🏆</span><span class="tag" data-ic="⭐">⭐</span>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">備注</label><input type="text" id="cd-note" class="fc" placeholder="選填"></div>
+    <button class="btn bp bb" id="btn-save-cd">儲存</button>
+  </div>
+</div>
+
+<!-- Goal -->
+<div class="mo" id="mo-goal">
+  <div class="mb">
+    <div class="mt"><span id="mo-goal-title">新增目標</span><button class="mc" data-close="mo-goal">✕</button></div>
+    <input type="hidden" id="goal-id">
+    <div class="fg"><label class="fl">目標名稱</label><input type="text" id="goal-name" class="fc" placeholder="e.g. 每日運動30分鐘"></div>
+    <div class="fg"><label class="fl">圖示</label>
+      <div class="tags" id="goal-icons">
+        <span class="tag sel" data-ic="🎯">🎯</span><span class="tag" data-ic="📚">📚</span>
+        <span class="tag" data-ic="💪">💪</span><span class="tag" data-ic="🏃">🏃</span>
+        <span class="tag" data-ic="💧">💧</span><span class="tag" data-ic="🥗">🥗</span>
+        <span class="tag" data-ic="🎵">🎵</span><span class="tag" data-ic="✍️">✍️</span>
+        <span class="tag" data-ic="🧘">🧘</span><span class="tag" data-ic="💤">💤</span>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">重複週期</label>
+      <div class="tags" id="goal-rep-tabs">
+        <span class="tag sel" data-rt="daily">每日</span>
+        <span class="tag" data-rt="weekly">指定星期</span>
+        <span class="tag" data-rt="monthly">每月指定日</span>
+        <span class="tag" data-rt="yearly">每年指定日</span>
+        <span class="tag" data-rt="period">時段目標</span>
+        <span class="tag" data-rt="target">累積達成</span>
+      </div>
+    </div>
+    <div class="fg" id="g-weekly" style="display:none">
+      <label class="fl">星期幾打卡（可多選）</label>
+      <div class="dpills" id="g-dow">
+        <div class="dp" data-d="0">日</div><div class="dp" data-d="1">一</div>
+        <div class="dp" data-d="2">二</div><div class="dp" data-d="3">三</div>
+        <div class="dp" data-d="4">四</div><div class="dp" data-d="5">五</div>
+        <div class="dp" data-d="6">六</div>
+      </div>
+    </div>
+    <div class="fg" id="g-monthly" style="display:none">
+      <label class="fl">每月第幾日（1–31）</label>
+      <input type="number" id="g-mday" class="fc" min="1" max="31" placeholder="e.g. 15">
+    </div>
+    <div class="fg" id="g-yearly" style="display:none">
+      <label class="fl">每年打卡日期（MM-DD）</label>
+      <input type="text" id="g-ydate" class="fc" placeholder="e.g. 01-01">
+    </div>
+    <div class="fr2" id="g-period" style="display:none">
+      <div class="fg"><label class="fl">開始日期</label><input type="date" id="g-pstart" class="fc"></div>
+      <div class="fg"><label class="fl">結束日期</label><input type="date" id="g-pend" class="fc"></div>
+    </div>
+    <div class="fg" id="g-target" style="display:none">
+      <label class="fl">目標數值</label>
+      <input type="number" id="g-tval" class="fc" placeholder="e.g. 100">
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">⏰ 時段開始（選填）</label><input type="time" id="g-ts" class="fc"></div>
+      <div class="fg"><label class="fl">⏰ 時段結束（選填）</label><input type="time" id="g-te" class="fc"></div>
+    </div>
+    <button class="btn bp bb" id="btn-save-goal">儲存</button>
+  </div>
+</div>
+
+<!-- Note -->
+<div class="mo" id="mo-note">
+  <div class="mb">
+    <div class="mt"><span id="mo-note-title">新增筆記</span><button class="mc" data-close="mo-note">✕</button></div>
+    <input type="hidden" id="note-id">
+    <div class="fg"><label class="fl">標題</label><input type="text" id="note-title" class="fc" placeholder="筆記標題..."></div>
+    <div class="fg"><label class="fl">分類標籤</label>
+      <div class="tags" id="note-cat-tags">
+        <span class="tag sel" data-nc="日記">📔 日記</span>
+        <span class="tag" data-nc="想法">💡 想法</span>
+        <span class="tag" data-nc="工作">💼 工作</span>
+        <span class="tag" data-nc="學習">📚 學習</span>
+        <span class="tag" data-nc="其他">📌 其他</span>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">內容</label><textarea id="note-body" class="fc" rows="6" placeholder="在此輸入筆記內容..."></textarea></div>
+    <button class="btn bp bb" id="btn-save-note">儲存</button>
+  </div>
+</div>
+
+<!-- Transaction -->
+<div class="mo" id="mo-tx">
+  <div class="mb">
+    <div class="mt">新增交易<button class="mc" data-close="mo-tx">✕</button></div>
+    <input type="hidden" id="tx-id">
+    <div class="fg">
+      <div class="tags" id="tx-type">
+        <span class="tag sel" data-tp="expense">💸 支出</span>
+        <span class="tag" data-tp="income">💰 收入</span>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">金額</label>
+      <div style="display:flex;align-items:center;gap:7px">
+        <span id="tx-cur" style="font-size:19px;font-weight:700;color:var(--P)">HK$</span>
+        <input type="number" id="tx-amt" class="fc" placeholder="0.00" step="0.01">
+      </div>
+    </div>
+    <div class="fg"><label class="fl">分類</label><div class="tags" id="tx-cats"></div></div>
+    <div class="fg"><label class="fl">💳 錢包（選填）</label><div class="tags" id="tx-wallet-tags"></div></div>
+    <div class="fg"><label class="fl">日期</label><input type="date" id="tx-date" class="fc"></div>
+    <div class="fg"><label class="fl">備注</label><input type="text" id="tx-note" class="fc" placeholder="選填"></div>
+    <button class="btn bp bb" id="btn-save-tx">儲存</button>
+  </div>
+</div>
+
+<!-- Activity Log Modal -->
+<div class="mo" id="mo-act">
+  <div class="mb">
+    <div class="mt"><span id="mo-act-title">新增活動記錄</span><button class="mc" data-close="mo-act">✕</button></div>
+    <input type="hidden" id="act-id">
+    <div class="fg"><label class="fl">日期</label><input type="date" id="act-date" class="fc"></div>
+    <div class="fg"><label class="fl">活動類型</label>
+      <div class="tags" id="act-type-tags">
+        <span class="tag sel" data-at="重訓">💪 重訓</span>
+        <span class="tag" data-at="跑步">🏃 跑步</span>
+        <span class="tag" data-at="游泳">🏊 游泳</span>
+        <span class="tag" data-at="單車">🚴 單車</span>
+        <span class="tag" data-at="瑜伽">🧘 瑜伽</span>
+        <span class="tag" data-at="HIIT">🔥 HIIT</span>
+        <span class="tag" data-at="球類">⚽ 球類</span>
+        <span class="tag" data-at="其他">📌 其他</span>
+      </div>
+    </div>
+    <!-- Weight Training sets -->
+    <div id="act-weights-section">
+      <label class="fl">訓練動作（可多行）</label>
+      <div class="set-builder" id="set-builder">
+        <div style="display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr auto;gap:6px;margin-bottom:2px">
+          <span style="font-size:11px;color:var(--tx2)">動作名稱</span>
+          <span style="font-size:11px;color:var(--tx2);text-align:center">組數</span>
+          <span style="font-size:11px;color:var(--tx2);text-align:center">次數</span>
+          <span style="font-size:11px;color:var(--tx2);text-align:center">重量(kg)</span>
+          <span></span>
+        </div>
+      </div>
+      <button class="btn bg bs" id="btn-add-set" style="margin-top:8px;width:100%;justify-content:center">＋ 新增動作</button>
+    </div>
+    <!-- Cardio section -->
+    <div id="act-cardio-section" style="display:none">
+      <label class="fl">運動表現</label>
+      <div class="set-builder" id="cardio-builder">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:6px;margin-bottom:2px">
+          <span style="font-size:11px;color:var(--tx2)">項目/路線</span>
+          <span style="font-size:11px;color:var(--tx2);text-align:center">距離(km)</span>
+          <span style="font-size:11px;color:var(--tx2);text-align:center">時間(分鐘)</span>
+          <span></span>
+        </div>
+      </div>
+      <button class="btn bg bs" id="btn-add-cardio" style="margin-top:8px;width:100%;justify-content:center">＋ 新增項目</button>
+    </div>
+    <!-- Generic notes for other types -->
+    <div id="act-notes-section" style="display:none">
+      <label class="fl">活動詳情</label>
+      <textarea id="act-notes" class="fc" rows="4" placeholder="記錄活動詳情..."></textarea>
+    </div>
+    <div class="fg" style="margin-top:12px"><label class="fl">整體感受（選填）</label>
+      <div class="tags" id="act-feel">
+        <span class="tag tsm" data-f="輕鬆">😊 輕鬆</span>
+        <span class="tag tsm" data-f="適中">💪 適中</span>
+        <span class="tag tsm" data-f="辛苦">😅 辛苦</span>
+        <span class="tag tsm" data-f="極限">🔥 極限</span>
+      </div>
+    </div>
+    <button class="btn bp bb" id="btn-save-act">儲存活動</button>
+  </div>
+</div>
+
+<!-- Wallet Modal -->
+<div class="mo" id="mo-wallets">
+  <div class="mb">
+    <div class="mt">💳 錢包管理<button class="mc" data-close="mo-wallets">✕</button></div>
+    <div id="wallets-list"></div>
+    <div class="dvd"></div>
+    <div class="fg" style="margin-top:10px">
+      <label class="fl">新增錢包</label>
+      <div class="tags" id="wallet-em-pick" style="flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px">
+        <span class="tag tsm sel" data-wem="💵">💵</span>
+        <span class="tag tsm" data-wem="💳">💳</span><span class="tag tsm" data-wem="🏦">🏦</span>
+        <span class="tag tsm" data-wem="👛">👛</span><span class="tag tsm" data-wem="📱">📱</span>
+        <span class="tag tsm" data-wem="🎫">🎫</span><span class="tag tsm" data-wem="⭐">⭐</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input type="text" id="new-wallet-name" class="fc" placeholder="錢包名稱（如：現金、信用卡）" style="flex:1">
+        <button class="btn bp bs" id="btn-add-wallet">新增</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Budget -->
+<div class="mo" id="mo-bgt">
+  <div class="mb">
+    <div class="mt">設定月度預算<button class="mc" data-close="mo-bgt">✕</button></div>
+    <div id="bgt-inputs"></div>
+    <button class="btn bp bb" id="btn-save-bgt">儲存</button>
+  </div>
+</div>
+
+<div class="snk" id="snk"></div>
+
+<script>
+// ══════════════════════════════════════
+//  ACCOUNTS
+// ══════════════════════════════════════
+const raw=(k,d)=>{try{return JSON.parse(localStorage.getItem('lp_'+k))??d}catch{return d}};
+const setRaw=(k,v)=>localStorage.setItem('lp_'+k,JSON.stringify(v));
+
+let accounts=raw('accs',[{id:'default',name:'我的帳戶',emoji:'👤'}]);
+let aid=raw('cur_acc','default');
+if(!accounts.find(a=>a.id===aid)){aid='default';setRaw('cur_acc','default');}
+
+const key=k=>`acc_${aid}_${k}`;
+const DB={
+  get:(k,d)=>{try{return JSON.parse(localStorage.getItem('lp_'+key(k)))??d}catch{return d}},
+  set:(k,v)=>localStorage.setItem('lp_'+key(k),JSON.stringify(v))
+};
+
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+const today=()=>new Date().toISOString().slice(0,10);
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// ══════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════
+let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets;
+function loadData(){
+  cfg        =DB.get('cfg',{lang:'zh',cur:'HK$',theme:'#6C63FF'});
+  evts       =DB.get('evts',[]);
+  cds        =DB.get('cds',[]);
+  goals      =DB.get('goals',[]);
+  txs        =DB.get('txs',[]);
+  bgts       =DB.get('bgts',{});
+  sav        =DB.get('sav',0);
+  glogs      =DB.get('glogs',{});
+  hlogs      =DB.get('hlogs',{});
+  notes      =DB.get('notes',[]);
+  activities =DB.get('acts',[]);
+  wallets    =DB.get('wallets',[
+    {id:'cash',name:'現金',em:'💵',balance:0},
+    {id:'credit',name:'信用卡',em:'💳',balance:0},
+    {id:'octopus',name:'八達通',em:'🎫',balance:0}
+  ]);
+}
+function save(){
+  DB.set('cfg',cfg);DB.set('evts',evts);DB.set('cds',cds);DB.set('goals',goals);
+  DB.set('txs',txs);DB.set('bgts',bgts);DB.set('sav',sav);
+  DB.set('glogs',glogs);DB.set('hlogs',hlogs);DB.set('notes',notes);
+  DB.set('acts',activities);DB.set('wallets',wallets);
+}
+loadData();
+
+// ══════════════════════════════════════
+//  THEME
+// ══════════════════════════════════════
+function applyTheme(c){
+  const r=parseInt(c.slice(1,3),16),g=parseInt(c.slice(3,5),16),b=parseInt(c.slice(5,7),16);
+  const h=v=>v.toString(16).padStart(2,'0');
+  const dk=(x,p)=>Math.max(0,Math.round(x*(1-p)));
+  const lt=(x,p)=>Math.round(x+(255-x)*p);
+  document.documentElement.style.setProperty('--P',c);
+  document.documentElement.style.setProperty('--PD',`#${h(dk(r,.15))}${h(dk(g,.15))}${h(dk(b,.15))}`);
+  document.documentElement.style.setProperty('--PL',`#${h(lt(r,.88))}${h(lt(g,.88))}${h(lt(b,.88))}`);
+  document.querySelector('meta[name=theme-color]').content=c;
+}
+
+// ══════════════════════════════════════
+//  NAV
+// ══════════════════════════════════════
+document.querySelectorAll('.nb').forEach(b=>b.addEventListener('click',()=>go(b.dataset.pg)));
+function go(n){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pg-'+n)?.classList.add('on');
+  document.querySelector(`[data-pg="${n}"]`)?.classList.add('on');
+  render(n);
+}
+function curPg(){return document.querySelector('.pg.on')?.id?.replace('pg-','')||'dash'}
+function render(n){
+  ({dash:rdDash,cal:rdCal,cd:rdCds,goals:rdGoals,health:rdHealth,notes:rdNotes,fin:rdFin,set:rdSet})[n]?.();
+}
+function rerender(){render(curPg())}
+
+// ══════════════════════════════════════
+//  MODAL
+// ══════════════════════════════════════
+const openM=id=>document.getElementById(id).classList.add('on');
+const closeM=id=>document.getElementById(id).classList.remove('on');
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeM(b.dataset.close)));
+document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeM(o.id)}));
+
+// ══════════════════════════════════════
+//  SNACK
+// ══════════════════════════════════════
+const snkEl=document.getElementById('snk');let snkT;
+function snk(m){snkEl.textContent=m;snkEl.classList.add('on');clearTimeout(snkT);snkT=setTimeout(()=>snkEl.classList.remove('on'),2100)}
+
+// ══════════════════════════════════════
+//  ACCOUNTS UI
+// ══════════════════════════════════════
+document.getElementById('hdr-acc-btn').addEventListener('click',()=>{rdAccModal();openM('mo-acc')});
+document.getElementById('btn-open-acc').addEventListener('click',()=>{rdAccModal();openM('mo-acc')});
+let selAccEm='👤';
+document.getElementById('acc-em-pick').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('acc-em-pick').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.add('sel');selAccEm=t.dataset.em;
+  });
+});
+document.getElementById('btn-add-acc').addEventListener('click',()=>{
+  const n=document.getElementById('new-acc-name').value.trim();
+  if(!n){snk('⚠️ 請輸入帳戶名稱');return;}
+  const newId=uid();
+  accounts.push({id:newId,name:n,emoji:selAccEm});
+  setRaw('accs',accounts);
+  document.getElementById('new-acc-name').value='';
+  // auto-switch
+  aid=newId;setRaw('cur_acc',aid);loadData();applyTheme(cfg.theme);
+  rdAccModal();rerender();updateAccHdr();snk('✅ 已建立並切換至新帳戶');
+});
+function switchAcc(id){
+  aid=id;setRaw('cur_acc',id);loadData();applyTheme(cfg.theme);
+  rdAccModal();closeM('mo-acc');rerender();updateAccHdr();snk('✅ 已切換帳戶');
+}
+function delAcc(id){
+  if(!confirm('確定刪除此帳戶及全部資料？'))return;
+  accounts=accounts.filter(a=>a.id!==id);
+  setRaw('accs',accounts);
+  Object.keys(localStorage).filter(k=>k.startsWith(`lp_acc_${id}_`)).forEach(k=>localStorage.removeItem(k));
+  if(aid===id){aid='default';setRaw('cur_acc','default');loadData();}
+  rdAccModal();snk('🗑️ 已刪除');
+}
+function rdAccModal(){
+  document.getElementById('acc-list').innerHTML=accounts.map(a=>`
+    <div class="acci">
+      <div class="acav ${a.id===aid?'cur':''}">${a.emoji}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">${esc(a.name)}</div>
+        <div style="font-size:11px;color:var(--tx2)">${a.id===aid?'✅ 目前使用中':''}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        ${a.id!==aid?`<button class="btn bp bs" onclick="switchAcc('${a.id}')">切換</button>`:''}
+        ${accounts.length>1?`<button class="btn bd bs" onclick="delAcc('${a.id}')">🗑️</button>`:''}
+      </div>
+    </div>`).join('');
+}
+function updateAccHdr(){
+  const a=accounts.find(x=>x.id===aid)||accounts[0];
+  document.getElementById('hdr-acc-name').textContent=a.name;
+  document.getElementById('cur-acc-sub').textContent=a.emoji+' '+a.name;
+}
+
+// ══════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════
+const GREET={zh:{m:'早晨 ☀️',a:'下午好 🌤',e:'晚上好 🌙',q:['一步一腳印，堅持就是勝利','今日事今日畢','積少成多，聚沙成塔','自律帶來自由']},
+  en:{m:'Good Morning ☀️',a:'Good Afternoon 🌤',e:'Good Evening 🌙',q:['One step at a time','Do it now','Small steps, big changes','Discipline equals freedom']}};
+function rdDash(){
+  updateAccHdr();
+  const now=new Date(),h=now.getHours(),l=cfg.lang||'zh',G=GREET[l];
+  document.getElementById('dash-date').textContent=now.toLocaleDateString(l==='zh'?'zh-TW':'en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('dash-greet').textContent=h<12?G.m:h<18?G.a:G.e;
+  document.getElementById('dash-quote').textContent=G.q[now.getDate()%G.q.length];
+  const ym=today().slice(0,7);
+  const mt=txs.filter(t=>t.date.startsWith(ym));
+  const inc=mt.filter(t=>t.tp==='income').reduce((s,t)=>s+t.amt,0);
+  const exp=mt.filter(t=>t.tp==='expense').reduce((s,t)=>s+t.amt,0);
+  document.getElementById('d-inc').textContent=cfg.cur+inc.toLocaleString();
+  document.getElementById('d-exp').textContent=cfg.cur+exp.toLocaleString();
+  // health
+  const hl=hlogs[today()]||{};
+  const mEm=['','😫','😕','😐','😊','🤩'];
+  document.getElementById('d-health').innerHTML=hl.wake||hl.weight||hl.mood?
+    `<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px;padding:4px 0">
+      ${hl.wake?`<span>🌅 ${hl.wake}</span>`:''}${hl.sleep?`<span>🌙 ${hl.sleep}</span>`:''}
+      ${hl.sq?`<span>${'⭐'.repeat(hl.sq)}</span>`:''}
+      ${hl.weight?`<span>⚖️ ${hl.weight}kg</span>`:''}${hl.water?`<span>💧 ${hl.water}杯</span>`:''}
+      ${hl.mood?`<span>${mEm[hl.mood]} ${['','極差','欠佳','一般','良好','極佳'][hl.mood]}</span>`:''}
+    </div>`:
+    `<a href="#" onclick="go('health');return false" style="color:var(--P);font-size:13px">👉 記錄今日健康</a>`;
+  // countdowns
+  const sorted=[...cds].sort((a,b)=>Math.abs(daysLeft(a.date))-Math.abs(daysLeft(b.date))).slice(0,3);
+  document.getElementById('d-cd').innerHTML=sorted.length?sorted.map(c=>{
+    const d=daysLeft(c.date);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bdr)">
+      <span style="font-size:20px">${c.ic||'⭐'}</span>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${esc(c.name)}</div>
+      <div style="font-size:11px;color:var(--tx2)">${c.date}</div></div>
+      <span style="font-weight:800;color:var(--P);font-size:14px">${d===0?'今日🎉':d>0?d+'天':Math.abs(d)+'天前'}</span>
+    </div>`;
+  }).join(''):`<div class="empty" style="padding:12px">⏳ 未有倒數事件</div>`;
+  // goals due today
+  const td=today();
+  const due=goals.filter(g=>isDue(g,td));
+  document.getElementById('d-goals').innerHTML=due.length?due.map(g=>{
+    const done=(glogs[g.id]||[]).includes(td);
+    return `<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--bdr)">
+      <span style="font-size:20px">${g.ic||'🎯'}</span>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${esc(g.name)}</div>
+      <div style="font-size:10px;color:var(--tx2)">${repLabel(g)}</div></div>
+      <button class="ckb ${done?'done':''}" onclick="qCheck('${g.id}')">${done?'已打卡✓':'打卡'}</button>
+    </div>`;
+  }).join(''):`<div style="padding:10px;color:var(--tx2);font-size:13px">今日無目標打卡任務</div>`;
+  // events
+  const te=getEvts(td);
+  document.getElementById('d-evts').innerHTML=te.length?te.map(e=>`
+    <div class="li"><div class="ldot" style="background:${e.col||'var(--P)'}"></div>
+    <div class="linfo"><div class="ltitle">${esc(e.name)}</div><div class="lmeta">${e.time||'全日'}${e.note?' · '+esc(e.note):''}</div></div></div>`).join(''):
+    `<div style="padding:10px;color:var(--tx2);font-size:13px">今日無行程</div>`;
+  // recent notes
+  const rn=[...notes].sort((a,b)=>b.ts-a.ts).slice(0,3);
+  document.getElementById('d-notes').innerHTML=rn.length?rn.map(n=>`
+    <div class="ni" onclick="viewNote('${n.id}')">
+      <div class="ntitle">${esc(n.title||'無標題')}</div>
+      <div class="nbody">${esc(n.body||'')}</div>
+      <div class="nmeta"><span class="ntag">${n.cat||'筆記'}</span><span>${n.date}</span></div>
+    </div>`).join(''):`<div style="padding:10px;color:var(--tx2);font-size:13px">尚未有筆記</div>`;
+}
+function qCheck(gid){
+  if(!glogs[gid])glogs[gid]=[];
+  if(glogs[gid].includes(today())){snk('今日已打卡');return;}
+  glogs[gid].push(today());save();rdDash();snk('✅ 打卡成功！');
+}
+
+// ══════════════════════════════════════
+//  CALENDAR
+// ══════════════════════════════════════
+let cY,cM,cSel;
+function initCal(){const n=new Date();cY=n.getFullYear();cM=n.getMonth();cSel=today();}
+function daysLeft(ds){const t=new Date(ds+'T00:00:00'),n=new Date();n.setHours(0,0,0,0);return Math.round((t-n)/86400000)}
+function getEvts(ds){
+  const d=new Date(ds+'T00:00:00');
+  return evts.filter(e=>{
+    if(e.date===ds)return true;
+    if(e.date>ds)return false;
+    if(e.rep==='daily')return true;
+    if(e.rep==='weekly'){const s=new Date(e.date+'T00:00:00');return s<=d&&(d-s)%(7*86400000)===0}
+    if(e.rep==='monthly'){const s=new Date(e.date+'T00:00:00');return s<=d&&s.getDate()===d.getDate()}
+    if(e.rep==='yearly'){const s=new Date(e.date+'T00:00:00');return s<=d&&s.getMonth()===d.getMonth()&&s.getDate()===d.getDate()}
+    return false;
+  });
+}
+function rdCal(){
+  const td=today();
+  const lbl=new Date(cY,cM,1).toLocaleDateString(cfg.lang==='zh'?'zh-TW':'en-US',{year:'numeric',month:'long'});
+  document.getElementById('cal-title').textContent=lbl;
+  document.getElementById('cal-lbl').textContent=lbl;
+  const fd=new Date(cY,cM,1).getDay(),dim=new Date(cY,cM+1,0).getDate(),pd=new Date(cY,cM,0).getDate();
+  const DL=cfg.lang==='zh'?['日','一','二','三','四','五','六']:['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let h=DL.map(d=>`<div style="text-align:center;font-size:11px;font-weight:600;color:var(--tx2);padding:3px 0">${d}</div>`).join('');
+  for(let i=0;i<fd;i++) h+=`<div style="min-height:34px;opacity:.3;font-size:12px;display:flex;align-items:flex-start;justify-content:center;padding-top:4px">${pd-fd+1+i}</div>`;
+  for(let d=1;d<=dim;d++){
+    const ds=`${cY}-${String(cM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const e=getEvts(ds),isT=ds===td,isSel=ds===cSel;
+    const dots=e.slice(0,3).map(x=>`<div style="width:5px;height:5px;border-radius:50%;background:${x.col||'var(--P)'};margin:1px auto"></div>`).join('');
+    h+=`<div onclick="selDay('${ds}')" style="min-height:34px;border-radius:9px;display:flex;flex-direction:column;align-items:center;padding-top:4px;cursor:pointer;font-size:13px;
+      background:${isT?'var(--P)':isSel?'var(--PL)':'transparent'};color:${isT?'#fff':isSel?'var(--P)':'inherit'};font-weight:${isT||isSel?700:400};transition:background .15s">
+      ${d}${dots}</div>`;
+  }
+  const rem=(7-((fd+dim)%7))%7;
+  for(let i=1;i<=rem;i++) h+=`<div style="min-height:34px;opacity:.3;font-size:12px;display:flex;align-items:flex-start;justify-content:center;padding-top:4px">${i}</div>`;
+  document.getElementById('cal-grid').innerHTML=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">${h}</div>`;
+  rdCalDay();
+}
+function selDay(ds){cSel=ds;rdCal()}
+function rdCalDay(){
+  const ds=cSel||today();
+  const lbl=new Date(ds+'T00:00:00').toLocaleDateString(cfg.lang==='zh'?'zh-TW':'en-US',{month:'long',day:'numeric',weekday:'short'});
+  document.getElementById('cal-day-lbl').textContent=lbl;
+  const e=getEvts(ds);
+  document.getElementById('cal-day-evts').innerHTML=e.length?e.map(ev=>`
+    <div class="li"><div class="ldot" style="background:${ev.col||'var(--P)'}"></div>
+    <div class="linfo"><div class="ltitle">${esc(ev.name)}</div>
+    <div class="lmeta">${ev.time||''} ${ev.rep&&ev.rep!=='none'?'🔁':''} ${ev.note?'· '+esc(ev.note):''}</div></div>
+    <div class="lact"><button class="btn bg bs" onclick="editEvt('${ev.id}')">✏️</button>
+    <button class="btn bg bs" onclick="delEvt('${ev.id}')">🗑️</button></div></div>`).join(''):
+    `<div style="padding:10px;color:var(--tx2);font-size:13px">今日無行程</div>`;
+}
+document.getElementById('cal-prev').addEventListener('click',()=>{cM--;if(cM<0){cM=11;cY--;}rdCal()});
+document.getElementById('cal-next').addEventListener('click',()=>{cM++;if(cM>11){cM=0;cY++;}rdCal()});
+
+let selEvtCol='#6C63FF';
+document.getElementById('evt-colors').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{document.getElementById('evt-colors').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selEvtCol=t.dataset.c;});
+});
+document.getElementById('btn-add-evt').addEventListener('click',()=>{
+  document.getElementById('evt-id').value='';document.getElementById('evt-name').value='';
+  document.getElementById('evt-date').value=cSel||today();document.getElementById('evt-time').value='';
+  document.getElementById('evt-note').value='';document.getElementById('evt-rep').value='none';
+  document.getElementById('mo-evt-title').textContent='新增行程';
+  document.getElementById('evt-colors').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  selEvtCol='#6C63FF';openM('mo-evt');
+});
+function editEvt(id){
+  const e=evts.find(x=>x.id===id);if(!e)return;
+  document.getElementById('evt-id').value=id;document.getElementById('evt-name').value=e.name;
+  document.getElementById('evt-date').value=e.date;document.getElementById('evt-time').value=e.time||'';
+  document.getElementById('evt-note').value=e.note||'';document.getElementById('evt-rep').value=e.rep||'none';
+  document.getElementById('mo-evt-title').textContent='編輯行程';
+  document.getElementById('evt-colors').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.c===e.col));
+  selEvtCol=e.col||'#6C63FF';openM('mo-evt');
+}
+function delEvt(id){evts=evts.filter(x=>x.id!==id);save();rdCal();rdDash();snk('🗑️ 已刪除')}
+document.getElementById('btn-save-evt').addEventListener('click',()=>{
+  const name=document.getElementById('evt-name').value.trim();
+  const date=document.getElementById('evt-date').value;
+  if(!name||!date){snk('⚠️ 請填寫名稱和日期');return;}
+  const id=document.getElementById('evt-id').value||uid();
+  const ev={id,name,date,time:document.getElementById('evt-time').value,
+    rep:document.getElementById('evt-rep').value,col:selEvtCol,note:document.getElementById('evt-note').value.trim()};
+  const i=evts.findIndex(x=>x.id===id);if(i>=0)evts[i]=ev;else evts.push(ev);
+  save();closeM('mo-evt');rdCal();rdDash();snk('✅ 已儲存');
+});
+
+// ══════════════════════════════════════
+//  COUNTDOWNS
+// ══════════════════════════════════════
+let selCdIc='🎂';
+document.getElementById('cd-icons').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{document.getElementById('cd-icons').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selCdIc=t.dataset.ic;});
+});
+document.getElementById('btn-add-cd').addEventListener('click',()=>{
+  ['cd-id','cd-name','cd-date','cd-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cd-icons').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  selCdIc='🎂';openM('mo-cd');
+});
+function rdCds(){
+  const s=[...cds].sort((a,b)=>Math.abs(daysLeft(a.date))-Math.abs(daysLeft(b.date)));
+  document.getElementById('cd-list').innerHTML=s.length?s.map(c=>{
+    const d=daysLeft(c.date);
+    const bg=d>=0?'var(--PL)':'var(--sur2)',fg=d>=0?'var(--P)':'var(--tx2)';
+    return `<div class="cdi">
+      <div class="cdb" style="background:${bg};color:${fg}">
+        <div class="num">${d===0?'🎉':Math.abs(d)}</div>
+        <div class="unit">${d>0?'天':d===0?'今日':'天前'}</div>
+      </div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:600">${c.ic||'⭐'} ${esc(c.name)}</div>
+      <div style="font-size:11px;color:var(--tx2)">${c.date}${c.note?' · '+esc(c.note):''}</div></div>
+      <button class="btn bg bs" onclick="delCd('${c.id}')">🗑️</button>
+    </div>`;
+  }).join(''):`<div class="empty"><span class="ei">⏳</span>未有倒數事件</div>`;
+}
+function delCd(id){cds=cds.filter(c=>c.id!==id);save();rdCds();snk('🗑️ 已刪除')}
+document.getElementById('btn-save-cd').addEventListener('click',()=>{
+  const name=document.getElementById('cd-name').value.trim(),date=document.getElementById('cd-date').value;
+  if(!name||!date){snk('⚠️ 請填寫名稱和日期');return;}
+  const id=document.getElementById('cd-id').value||uid();
+  cds=cds.filter(c=>c.id!==id);
+  cds.push({id,name,date,ic:selCdIc,note:document.getElementById('cd-note').value.trim()});
+  save();closeM('mo-cd');rdCds();rdDash();snk('✅ 已儲存');
+});
+
+// ══════════════════════════════════════
+//  GOALS — REPEAT SCHEDULING
+// ══════════════════════════════════════
+let selGIc='🎯',selRt='daily',selDow=[];
+function isDue(g,ds){
+  const d=new Date(ds+'T00:00:00');
+  if(g.rt==='daily') return true;
+  if(g.rt==='weekly') return (g.dow||[]).includes(d.getDay());
+  if(g.rt==='monthly') return d.getDate()===(g.mday||1);
+  if(g.rt==='yearly') return ds.slice(5)===(g.ydate||'01-01');
+  if(g.rt==='period') return (!g.ps||ds>=g.ps)&&(!g.pe||ds<=g.pe);
+  if(g.rt==='target') return true;
+  return true;
+}
+function repLabel(g){
+  const DN=['日','一','二','三','四','五','六'];
+  if(g.rt==='weekly') return '每週 '+(g.dow||[]).map(d=>'（'+DN[d]+'）').join('');
+  if(g.rt==='monthly') return `每月 ${g.mday} 日`;
+  if(g.rt==='yearly') return `每年 ${g.ydate}`;
+  if(g.rt==='period') return `${g.ps||''}～${g.pe||''}`;
+  if(g.rt==='target') return `目標：${g.tval||'?'}`;
+  if(g.ts) return `⏰ ${g.ts}${g.te?'-'+g.te:''}`;
+  return '每日';
+}
+document.getElementById('goal-rep-tabs').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('goal-rep-tabs').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.add('sel');selRt=t.dataset.rt;updGoalRepUI();
+  });
+});
+function updGoalRepUI(){
+  document.getElementById('g-weekly').style.display=selRt==='weekly'?'block':'none';
+  document.getElementById('g-monthly').style.display=selRt==='monthly'?'block':'none';
+  document.getElementById('g-yearly').style.display=selRt==='yearly'?'block':'none';
+  document.getElementById('g-period').style.display=selRt==='period'?'grid':'none';
+  document.getElementById('g-target').style.display=selRt==='target'?'block':'none';
+}
+document.getElementById('g-dow').querySelectorAll('.dp').forEach(p=>{
+  p.addEventListener('click',()=>{
+    p.classList.toggle('sel');
+    const d=parseInt(p.dataset.d);
+    if(p.classList.contains('sel')){if(!selDow.includes(d))selDow.push(d);}
+    else selDow=selDow.filter(x=>x!==d);
+  });
+});
+document.getElementById('goal-icons').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{document.getElementById('goal-icons').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selGIc=t.dataset.ic;});
+});
+document.getElementById('btn-add-goal').addEventListener('click',()=>{
+  document.getElementById('goal-id').value='';document.getElementById('goal-name').value='';
+  ['g-mday','g-ydate','g-pstart','g-pend','g-tval','g-ts','g-te'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mo-goal-title').textContent='新增目標';
+  document.getElementById('goal-icons').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  document.getElementById('goal-rep-tabs').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  document.getElementById('g-dow').querySelectorAll('.dp').forEach(p=>p.classList.remove('sel'));
+  selGIc='🎯';selRt='daily';selDow=[];updGoalRepUI();openM('mo-goal');
+});
+function rdGoals(){
+  const td=today();
+  document.getElementById('goals-list').innerHTML=goals.length?goals.map(g=>{
+    const logs=glogs[g.id]||[],done=logs.includes(td),due=isDue(g,td);
+    const streak=calcStreak(logs);
+    let prog='';
+    if(g.rt==='target'){
+      const cur=logs.length,max=g.tval||100,pct=Math.min(100,Math.round(cur/max*100));
+      prog=`<div class="pb"><div class="pf" style="width:${pct}%"></div></div>
+        <div class="gmeta">${cur} / ${max} (${pct}%)</div>`;
+    } else {
+      const h35=last35();
+      prog=`<div class="hm">${h35.map(d=>`<div class="hc ${logs.includes(d)?'l3':''}"></div>`).join('')}</div>
+        <div class="gmeta" style="margin-top:5px">🔥 ${streak}天連續 · 共 ${logs.length} 次</div>`;
+    }
+    return `<div class="gi">
+      <div class="gtop">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+          <span style="font-size:21px">${g.ic||'🎯'}</span>
+          <div style="min-width:0">
+            <div class="gname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(g.name)}</div>
+            <div style="font-size:10px;color:var(--tx2)">${repLabel(g)}${g.ts?' ⏰'+g.ts+(g.te?'-'+g.te:''):''}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px">
+          ${g.rt!=='target'?`<span style="font-size:11px;color:var(--warn);font-weight:700">🔥${streak}</span>`:''}
+          ${due?`<button class="ckb ${done?'done':''}" onclick="ckGoal('${g.id}')">${done?'✓':'打卡'}</button>`:'<span style="font-size:10px;color:var(--tx2)">非今日</span>'}
+          <button class="btn bg bs" onclick="delGoal('${g.id}')">🗑️</button>
+        </div>
+      </div>${prog}</div>`;
+  }).join(''):`<div class="empty"><span class="ei">🎯</span>未有目標，按＋新增</div>`;
+}
+function last35(){const a=[];for(let i=34;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);a.push(d.toISOString().slice(0,10));}return a;}
+function calcStreak(logs){let s=0,d=new Date();while(true){const ds=d.toISOString().slice(0,10);if(logs.includes(ds)){s++;d.setDate(d.getDate()-1);}else break;}return s;}
+function ckGoal(gid){
+  const g=goals.find(x=>x.id===gid);if(!g)return;
+  if(!glogs[gid])glogs[gid]=[];
+  if(g.rt==='target'){glogs[gid].push(today()+'-'+Date.now());}
+  else{if(glogs[gid].includes(today())){snk('今日已打卡');return;}glogs[gid].push(today());}
+  save();rdGoals();rdDash();snk('✅ 打卡成功 🔥');
+}
+function delGoal(id){goals=goals.filter(g=>g.id!==id);delete glogs[id];save();rdGoals();snk('🗑️ 已刪除')}
+document.getElementById('btn-save-goal').addEventListener('click',()=>{
+  const name=document.getElementById('goal-name').value.trim();
+  if(!name){snk('⚠️ 請填寫目標名稱');return;}
+  const id=document.getElementById('goal-id').value||uid();
+  goals=goals.filter(g=>g.id!==id);
+  goals.push({id,name,ic:selGIc,rt:selRt,dow:[...selDow],
+    mday:parseInt(document.getElementById('g-mday').value)||null,
+    ydate:document.getElementById('g-ydate').value||null,
+    ps:document.getElementById('g-pstart').value||null,pe:document.getElementById('g-pend').value||null,
+    tval:parseInt(document.getElementById('g-tval').value)||null,
+    ts:document.getElementById('g-ts').value||null,te:document.getElementById('g-te').value||null});
+  save();closeM('mo-goal');rdGoals();rdDash();snk('✅ 已儲存');
+});
+
+// ══════════════════════════════════════
+//  HEALTH
+// ══════════════════════════════════════
+let selSQ=0,selMood=0;
+document.getElementById('sleep-stars').querySelectorAll('.star').forEach(s=>{
+  s.addEventListener('click',()=>{selSQ=parseInt(s.dataset.v);updStars();});
+});
+function updStars(){
+  const lbls=['','很差','欠佳','一般','良好','極佳'];
+  document.getElementById('sleep-stars').querySelectorAll('.star').forEach(s=>{s.textContent=parseInt(s.dataset.v)<=selSQ?'⭐':'☆';});
+  document.getElementById('sq-lbl').textContent=selSQ?lbls[selSQ]:'';
+}
+document.getElementById('mood-g').querySelectorAll('.moodbtn').forEach(b=>{
+  b.addEventListener('click',()=>{document.getElementById('mood-g').querySelectorAll('.moodbtn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');selMood=parseInt(b.dataset.m);});
+});
+document.getElementById('btn-save-hlth').addEventListener('click',()=>{
+  hlogs[today()]={
+    wake:document.getElementById('h-wake').value,sleep:document.getElementById('h-sleep').value,
+    sq:selSQ,weight:parseFloat(document.getElementById('h-weight').value)||null,
+    water:parseInt(document.getElementById('h-water').value)||null,
+    mood:selMood,note:document.getElementById('h-note').value.trim(),ts:Date.now()
+  };
+  save();rdHealth();rdDash();snk('✅ 健康記錄已儲存');
+});
+function rdHealth(){
+  const ds=today(),hl=hlogs[ds]||{};
+  document.getElementById('h-wake').value=hl.wake||'';
+  document.getElementById('h-sleep').value=hl.sleep||'';
+  document.getElementById('h-weight').value=hl.weight||'';
+  document.getElementById('h-water').value=hl.water||'';
+  document.getElementById('h-note').value=hl.note||'';
+  selSQ=hl.sq||0;updStars();
+  selMood=hl.mood||0;
+  document.getElementById('mood-g').querySelectorAll('.moodbtn').forEach(b=>b.classList.toggle('sel',parseInt(b.dataset.m)===selMood));
+  const parts=[];
+  if(hl.weight)parts.push(`⚖️${hl.weight}kg`);
+  if(hl.mood)parts.push(['','😫','😕','😐','😊','🤩'][hl.mood]);
+  if(hl.wake)parts.push(`🌅${hl.wake}`);
+  document.getElementById('hlth-hdr').textContent=parts.length?parts.join(' · '):'今日健康狀況';
+  // weight chart
+  const last14=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);last14.push(d.toISOString().slice(0,10));}
+  const ws=last14.map(d=>hlogs[d]?.weight||null);
+  const valid=ws.filter(w=>w!==null);
+  const c=document.getElementById('w-chart');
+  const W=c.offsetWidth||340;c.width=W;c.height=110;
+  const ctx=c.getContext('2d');
+  if(valid.length>0){
+    const mn=Math.min(...valid)-.5,mx=Math.max(...valid)+.5;
+    const p={t:8,b:22,l:34,r:6},cw=W-p.l-p.r,ch=110-p.t-p.b;
+    ctx.clearRect(0,0,W,110);
+    ctx.strokeStyle='#e5e7eb';ctx.lineWidth=1;
+    [mn,Math.round((mn+mx)/2*10)/10,mx].forEach(v=>{
+      const y=p.t+ch*(1-(v-mn)/(mx-mn));
+      ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(W-p.r,y);ctx.stroke();
+      ctx.fillStyle='#6b7280';ctx.font='9px sans-serif';ctx.textAlign='right';
+      ctx.fillText(v.toFixed(1),p.l-2,y+3);
+    });
+    const pts=[];
+    ws.forEach((w,i)=>{
+      if(w===null)return;
+      pts.push({x:p.l+i*(cw/13),y:p.t+ch*(1-(w-mn)/(mx-mn))});
+    });
+    if(pts.length>1){
+      ctx.strokeStyle=cfg.theme||'#6C63FF';ctx.lineWidth=2.5;
+      ctx.beginPath();pts.forEach((pt,i)=>i===0?ctx.moveTo(pt.x,pt.y):ctx.lineTo(pt.x,pt.y));ctx.stroke();
+    }
+    pts.forEach(pt=>{
+      ctx.fillStyle='#fff';ctx.strokeStyle=cfg.theme||'#6C63FF';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(pt.x,pt.y,3.5,0,Math.PI*2);ctx.fill();ctx.stroke();
+    });
+    ctx.fillStyle='#6b7280';ctx.font='9px sans-serif';ctx.textAlign='center';
+    [0,4,8,13].forEach(i=>{const x=p.l+i*(cw/13);ctx.fillText(last14[i].slice(5),x,108);});
+    const avg=valid.reduce((s,v)=>s+v,0)/valid.length;
+    document.getElementById('w-avg').textContent=`均 ${avg.toFixed(1)}kg`;
+  } else {document.getElementById('w-avg').textContent='';}
+  // activity list
+  rdActList();
+  // history
+  const sorted=Object.entries(hlogs).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,30);
+  const mEm=['','😫','😕','😐','😊','🤩'],mLbl=['','很差','欠佳','一般','良好','極佳'],qLbl=['','很差','欠佳','一般','良好','極佳'];
+  document.getElementById('hlth-hist').innerHTML=sorted.length?sorted.map(([d,h])=>{
+    const dur=sleepDur(h.wake,h.sleep);
+    return `<div class="hli">
+      <div class="hlb">${h.mood?mEm[h.mood]:'💪'}</div>
+      <div class="hlinfo"><div class="hldate">${d}</div>
+      <div class="hlval">${h.weight?`⚖️${h.weight}kg `:''}${h.water?`💧${h.water}杯 `:''}${h.wake?`🌅${h.wake} `:''}${h.sleep?`🌙${h.sleep}`:''}${dur?` (${dur}) `:''}${h.sq?` ${'⭐'.repeat(h.sq)}`:''}${h.mood?` · ${mLbl[h.mood]}`:''}
+      </div>${h.note?`<div style="font-size:11px;color:var(--tx2)">${esc(h.note)}</div>`:''}</div>
+      <button class="btn bg bs" onclick="delHlth('${d}')">🗑️</button></div>`;
+  }).join(''):`<div class="empty">💪 尚未有記錄</div>`;
+}
+function sleepDur(w,s){
+  if(!w||!s)return '';
+  let [wh,wm]=w.split(':').map(Number),[sh,sm]=s.split(':').map(Number);
+  let wMin=wh*60+wm,sMin=sh*60+sm;
+  if(sMin>wMin)sMin-=1440;
+  const dur=wMin-sMin;
+  return dur>0&&dur<1440?`${Math.floor(dur/60)}h${dur%60?dur%60+'m':''}`:'';}
+function delHlth(d){delete hlogs[d];save();rdHealth();snk('🗑️ 已刪除')}
+
+// ══════════════════════════════════════
+//  NOTES / 筆記
+// ══════════════════════════════════════
+let selNoteCat='日記',noteFilter='all',noteSearch='',viewNoteId=null;
+document.getElementById('note-cat-tags').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('note-cat-tags').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.add('sel');selNoteCat=t.dataset.nc;
+  });
+});
+document.getElementById('note-tag-filter').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('note-tag-filter').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.add('sel');noteFilter=t.dataset.tf;rdNotes();
+  });
+});
+document.getElementById('note-search').addEventListener('input',function(){noteSearch=this.value.toLowerCase();rdNotes();});
+document.getElementById('btn-add-note').addEventListener('click',()=>{
+  document.getElementById('note-id').value='';document.getElementById('note-title').value='';document.getElementById('note-body').value='';
+  document.getElementById('mo-note-title').textContent='新增筆記';
+  document.getElementById('note-cat-tags').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  selNoteCat='日記';openM('mo-note');
+});
+function rdNotes(){
+  let filtered=[...notes];
+  if(noteFilter!=='all') filtered=filtered.filter(n=>n.cat===noteFilter);
+  if(noteSearch) filtered=filtered.filter(n=>(n.title||'').toLowerCase().includes(noteSearch)||(n.body||'').toLowerCase().includes(noteSearch));
+  filtered.sort((a,b)=>b.ts-a.ts);
+  const cnt=filtered.length;
+  document.getElementById('notes-hdr').textContent=cnt?`${cnt} 則筆記`:'記錄每一天';
+  document.getElementById('notes-list').innerHTML=filtered.length?filtered.map(n=>`
+    <div class="ni" onclick="viewNote('${n.id}')">
+      <div class="ntitle">${esc(n.title||'無標題')}</div>
+      <div class="nbody">${esc(n.body||'')}</div>
+      <div class="nmeta"><span class="ntag">${n.cat||'筆記'}</span><span>${n.date}</span></div>
+    </div>`).join(''):`<div class="empty"><span class="ei">📓</span>未有筆記${noteSearch?'符合搜尋':''}</div>`;
+}
+function viewNote(id){
+  const n=notes.find(x=>x.id===id);if(!n)return;
+  viewNoteId=id;
+  document.getElementById('nv-title').textContent=n.title||'無標題';
+  document.getElementById('nv-meta').textContent=n.date+' · '+n.cat;
+  document.getElementById('nv-body').textContent=n.body||'';
+  document.getElementById('note-view').classList.add('on');
+}
+function closeNoteView(){document.getElementById('note-view').classList.remove('on');viewNoteId=null;}
+document.getElementById('nv-edit').addEventListener('click',()=>{
+  const n=notes.find(x=>x.id===viewNoteId);if(!n)return;
+  document.getElementById('note-id').value=n.id;document.getElementById('note-title').value=n.title||'';
+  document.getElementById('note-body').value=n.body||'';
+  document.getElementById('mo-note-title').textContent='編輯筆記';
+  document.getElementById('note-cat-tags').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.nc===n.cat));
+  selNoteCat=n.cat||'日記';
+  closeNoteView();openM('mo-note');
+});
+document.getElementById('btn-save-note').addEventListener('click',()=>{
+  const title=document.getElementById('note-title').value.trim();
+  const body=document.getElementById('note-body').value.trim();
+  if(!title&&!body){snk('⚠️ 請填寫標題或內容');return;}
+  const id=document.getElementById('note-id').value||uid();
+  notes=notes.filter(n=>n.id!==id);
+  notes.push({id,title,body,cat:selNoteCat,date:today(),ts:Date.now()});
+  save();closeM('mo-note');rdNotes();rdDash();snk('✅ 筆記已儲存');
+});
+
+// ══════════════════════════════════════
+//  FINANCE
+// ══════════════════════════════════════
+let fY,fM,selTp='expense',selCat='food';
+function initFin(){const n=new Date();fY=n.getFullYear();fM=n.getMonth();}
+const CE=[{id:'food',em:'🍔',n:{zh:'飲食',en:'Food'}},{id:'transport',em:'🚇',n:{zh:'交通',en:'Transport'}},
+  {id:'shopping',em:'🛍️',n:{zh:'購物',en:'Shopping'}},{id:'entertain',em:'🎮',n:{zh:'娛樂',en:'Entertainment'}},
+  {id:'health',em:'💊',n:{zh:'醫療',en:'Health'}},{id:'edu',em:'📚',n:{zh:'教育',en:'Education'}},
+  {id:'housing',em:'🏠',n:{zh:'住屋',en:'Housing'}},{id:'other',em:'📦',n:{zh:'其他',en:'Other'}}];
+const CI=[{id:'salary',em:'💼',n:{zh:'薪金',en:'Salary'}},{id:'freelance',em:'💻',n:{zh:'接案',en:'Freelance'}},
+  {id:'invest',em:'📈',n:{zh:'投資',en:'Investment'}},{id:'gift',em:'🎁',n:{zh:'禮金',en:'Gift'}},{id:'other',em:'💵',n:{zh:'其他',en:'Other'}}];
+const CC={food:'#f59e0b',transport:'#3b82f6',shopping:'#ec4899',entertain:'#8b5cf6',health:'#ef4444',edu:'#6366f1',housing:'#14b8a6',other:'#6b7280',salary:'#22c55e',freelance:'#10b981',invest:'#0ea5e9',gift:'#f472b6'};
+function cname(id,tp){const a=tp==='income'?CI:CE;const c=a.find(x=>x.id===id);return c?c.em+' '+c.n[cfg.lang||'zh']:id}
+function cem(id,tp){return(tp==='income'?CI:CE).find(x=>x.id===id)?.em||'📦'}
+function rdFin(){
+  const ym=`${fY}-${String(fM+1).padStart(2,'0')}`;
+  const lbl=new Date(fY,fM,1).toLocaleDateString(cfg.lang==='zh'?'zh-TW':'en-US',{year:'numeric',month:'long'});
+  document.getElementById('fin-hdr').textContent=lbl;document.getElementById('fin-nav').textContent=lbl;
+  document.getElementById('tx-cur').textContent=cfg.cur||'HK$';
+  const mt=txs.filter(t=>t.date.startsWith(ym));
+  const inc=mt.filter(t=>t.tp==='income').reduce((s,t)=>s+t.amt,0);
+  const exp=mt.filter(t=>t.tp==='expense').reduce((s,t)=>s+t.amt,0);
+  document.getElementById('f-inc').textContent=(cfg.cur||'HK$')+inc.toLocaleString(undefined,{maximumFractionDigits:2});
+  document.getElementById('f-exp').textContent=(cfg.cur||'HK$')+exp.toLocaleString(undefined,{maximumFractionDigits:2});
+  document.getElementById('f-bal').textContent=(cfg.cur||'HK$')+(inc-exp).toLocaleString(undefined,{maximumFractionDigits:2});
+  document.getElementById('f-sav').textContent=(cfg.cur||'HK$')+(sav||0).toLocaleString();
+  // wallet overview
+  rdWalletOverview();
+  // budget
+  const bEl=document.getElementById('bgt-bars');
+  const bc=CE.filter(c=>bgts[c.id]);
+  bEl.innerHTML=bc.length?bc.map(c=>{
+    const sp=mt.filter(t=>t.tp==='expense'&&t.cat===c.id).reduce((s,t)=>s+t.amt,0);
+    const b=bgts[c.id],pct=Math.min(100,Math.round(sp/b*100));
+    const col=pct>90?'#ef4444':pct>70?'#f59e0b':'#22c55e';
+    return `<div class="bbi"><div class="bbl"><span>${c.em} ${c.n[cfg.lang||'zh']}</span><span>${(cfg.cur||'HK$')}${sp.toLocaleString()} / ${(cfg.cur||'HK$')}${b.toLocaleString()}</span></div>
+    <div class="bbr"><div class="bbf" style="width:${pct}%;background:${col}"></div></div></div>`;
+  }).join(''):`<div style="color:var(--tx2);font-size:13px">按「設定預算」建立月度預算</div>`;
+  // pie
+  const ec={};mt.filter(t=>t.tp==='expense').forEach(t=>{ec[t.cat]=(ec[t.cat]||0)+t.amt});
+  drawPie(ec);
+  // tx list
+  const sl=[...mt].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,40);
+  document.getElementById('tx-list').innerHTML=sl.length?sl.map(t=>`
+    <div class="txi">
+      <div class="txic" style="background:${CC[t.cat]||'#6b7280'}22">${cem(t.cat,t.tp)}</div>
+      <div class="txinfo"><div class="txcat">${cname(t.cat,t.tp)}</div><div class="txn">${t.date}${t.wid?' · '+(wallets.find(w=>w.id===t.wid)?.em||'')+(wallets.find(w=>w.id===t.wid)?.name||''):''} ${t.note?' · '+esc(t.note):''}</div></div>
+      <div><div class="txamt ${t.tp==='income'?'inc':'exp'}">${t.tp==='income'?'+':'-'}${(cfg.cur||'HK$')}${t.amt.toLocaleString()}</div>
+      <button class="btn bg bs" style="margin-top:3px" onclick="delTx('${t.id}')">🗑️</button></div>
+    </div>`).join(''):`<div class="empty">未有交易記錄</div>`;
+}
+function drawPie(data){
+  const c=document.getElementById('pie');const ctx=c.getContext('2d');
+  const W=c.offsetWidth||300;c.width=W;c.height=190;
+  const total=Object.values(data).reduce((s,v)=>s+v,0);
+  if(!total){ctx.clearRect(0,0,W,190);ctx.fillStyle='#6b7280';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('未有支出記錄',W/2,95);return;}
+  const cx=88,cy=88,r=72;let a=-Math.PI/2;
+  const en=Object.entries(data).sort((a,b)=>b[1]-a[1]);
+  en.forEach(([cat,val])=>{
+    const sl=val/total*Math.PI*2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+sl);ctx.closePath();
+    ctx.fillStyle=CC[cat]||'#6b7280';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();a+=sl;
+  });
+  let ly=14;
+  en.slice(0,7).forEach(([cat,val])=>{
+    ctx.fillStyle=CC[cat]||'#6b7280';ctx.fillRect(185,ly-9,13,13);
+    ctx.fillStyle='#1a1a2e';ctx.font='11px sans-serif';ctx.textAlign='left';
+    ctx.fillText(`${cname(cat,'expense')} ${Math.round(val/total*100)}%`,202,ly);ly+=21;
+  });
+}
+document.getElementById('fin-prev').addEventListener('click',()=>{fM--;if(fM<0){fM=11;fY--;}rdFin()});
+document.getElementById('fin-next').addEventListener('click',()=>{fM++;if(fM>11){fM=0;fY++;}rdFin()});
+function rdTxCats(tp){
+  const cats=tp==='income'?CI:CE;
+  const el=document.getElementById('tx-cats');
+  el.innerHTML=cats.map((c,i)=>`<span class="tag ${(selCat===c.id||(i===0&&!cats.find(x=>x.id===selCat)))?'sel':''}" data-c="${c.id}">${c.em} ${c.n[cfg.lang||'zh']}</span>`).join('');
+  el.querySelectorAll('.tag').forEach(t=>{t.addEventListener('click',()=>{el.querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selCat=t.dataset.c;});});
+  selCat=el.querySelector('.tag.sel')?.dataset.c||cats[0].id;
+}
+document.getElementById('tx-type').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{document.getElementById('tx-type').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selTp=t.dataset.tp;rdTxCats(selTp);});
+});
+document.getElementById('btn-add-tx').addEventListener('click',()=>{
+  document.getElementById('tx-id').value='';document.getElementById('tx-amt').value='';
+  document.getElementById('tx-date').value=today();document.getElementById('tx-note').value='';
+  selTp='expense';selTxWallet=null;
+  document.getElementById('tx-type').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.tp==='expense'));
+  rdTxCats('expense');rdWalletTags();openM('mo-tx');
+});
+document.getElementById('btn-save-tx').addEventListener('click',()=>{
+  const amt=parseFloat(document.getElementById('tx-amt').value);
+  const date=document.getElementById('tx-date').value;
+  if(!amt||!date){snk('⚠️ 請填寫金額和日期');return;}
+  const cat=document.getElementById('tx-cats').querySelector('.tag.sel')?.dataset.c||'other';
+  const id=document.getElementById('tx-id').value||uid();
+  txs=txs.filter(t=>t.id!==id);
+  txs.push({id,tp:selTp,amt,cat,date,wid:selTxWallet||null,note:document.getElementById('tx-note').value.trim()});
+  save();closeM('mo-tx');rdFin();rdDash();snk('✅ 已儲存');
+});
+function delTx(id){txs=txs.filter(t=>t.id!==id);save();rdFin();rdDash();snk('🗑️ 已刪除')}
+document.getElementById('btn-csv').addEventListener('click',()=>{
+  const ym=`${fY}-${String(fM+1).padStart(2,'0')}`;
+  const mt=txs.filter(t=>t.date.startsWith(ym));
+  const rows=[['Date','Type','Category','Amount','Note'],...mt.map(t=>[t.date,t.tp,t.cat,t.amt,t.note||''])];
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n'));
+  a.download=`finance-${ym}.csv`;a.click();snk('📥 CSV 已下載');
+});
+document.getElementById('btn-bgt').addEventListener('click',()=>{
+  document.getElementById('bgt-inputs').innerHTML=CE.map(c=>`
+    <div class="fg"><label class="fl">${c.em} ${c.n[cfg.lang||'zh']}</label>
+    <input type="number" class="fc" data-cat="${c.id}" value="${bgts[c.id]||''}" placeholder="月度預算金額..."></div>`).join('');
+  openM('mo-bgt');
+});
+document.getElementById('btn-save-bgt').addEventListener('click',()=>{
+  document.getElementById('bgt-inputs').querySelectorAll('input').forEach(inp=>{
+    const v=parseFloat(inp.value),cat=inp.dataset.cat;if(v>0)bgts[cat]=v;else delete bgts[cat];
+  });
+  save();closeM('mo-bgt');rdFin();snk('✅ 預算已儲存');
+});
+
+// ══════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════
+function rdSet(){
+  updateAccHdr();
+  document.getElementById('lang-sel').value=cfg.lang||'zh';
+  document.getElementById('cur-sel').value=cfg.cur||'HK$';
+  document.getElementById('sav-inp').value=sav||'';
+  document.querySelectorAll('#theme-sw .sw2').forEach(s=>s.classList.toggle('on',s.dataset.c===cfg.theme));
+}
+document.getElementById('lang-sel').addEventListener('change',function(){cfg.lang=this.value;save();rerender();snk('✅')});
+document.getElementById('cur-sel').addEventListener('change',function(){cfg.cur=this.value;save();rdFin();snk('✅')});
+document.getElementById('btn-sav').addEventListener('click',()=>{sav=parseFloat(document.getElementById('sav-inp').value)||0;save();rdFin();snk('✅ 已更新')});
+document.querySelectorAll('#theme-sw .sw2').forEach(s=>{
+  s.addEventListener('click',()=>{cfg.theme=s.dataset.c;save();applyTheme(s.dataset.c);
+    document.querySelectorAll('#theme-sw .sw2').forEach(x=>x.classList.toggle('on',x===s));snk('✅')});
+});
+document.getElementById('btn-exp').addEventListener('click',()=>{
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({evts,cds,goals,txs,bgts,cfg,sav,glogs,hlogs,notes,activities,wallets},null,2));
+  a.download=`lp-backup-${today()}.json`;a.click();snk('📤 備份已下載');
+});
+document.getElementById('imp-file').addEventListener('change',function(){
+  const f=this.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(d.evts)evts=d.evts;if(d.cds)cds=d.cds;if(d.goals)goals=d.goals;if(d.txs)txs=d.txs;
+      if(d.bgts)bgts=d.bgts;if(d.cfg)cfg=d.cfg;if(d.sav!==undefined)sav=d.sav;
+      if(d.glogs)glogs=d.glogs;if(d.hlogs)hlogs=d.hlogs;if(d.notes)notes=d.notes;
+      if(d.activities)activities=d.activities;if(d.wallets)wallets=d.wallets;
+      save();applyTheme(cfg.theme);rerender();snk('✅ 匯入成功');
+    }catch{snk('❌ 格式錯誤');}
+  };r.readAsText(f);this.value='';
+});
+document.getElementById('btn-clr').addEventListener('click',()=>{
+  if(!confirm('確定清除此帳戶所有資料？'))return;
+  evts=[];cds=[];goals=[];txs=[];bgts={};glogs={};hlogs={};notes=[];activities=[];sav=0;
+  wallets=[{id:'cash',name:'現金',em:'💵',balance:0},{id:'credit',name:'信用卡',em:'💳',balance:0},{id:'octopus',name:'八達通',em:'🎫',balance:0}];
+  save();rerender();snk('🗑️ 已清除');
+});
+
+// ══════════════════════════════════════
+//  WALLETS
+// ══════════════════════════════════════
+let selWalletEm='💵',selTxWallet=null;
+document.getElementById('wallet-em-pick').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('wallet-em-pick').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.add('sel');selWalletEm=t.dataset.wem;
+  });
+});
+document.getElementById('btn-add-wallet').addEventListener('click',()=>{
+  const name=document.getElementById('new-wallet-name').value.trim();
+  if(!name){snk('⚠️ 請填寫錢包名稱');return;}
+  wallets.push({id:uid(),name,em:selWalletEm,balance:0});
+  document.getElementById('new-wallet-name').value='';
+  save();rdWalletModal();rdFin();snk('✅ 錢包已新增');
+});
+document.getElementById('btn-wallets').addEventListener('click',()=>{rdWalletModal();openM('mo-wallets')});
+function rdWalletModal(){
+  document.getElementById('wallets-list').innerHTML=wallets.map(w=>`
+    <div class="wallet-item">
+      <div class="wallet-em">${w.em}</div>
+      <div style="flex:1">
+        <div class="wallet-name">${esc(w.name)}</div>
+        <div style="font-size:11px;color:var(--tx2)">餘額</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" class="fc" style="width:80px;padding:6px 8px;font-size:13px;text-align:right"
+          value="${w.balance||0}" onchange="updWalletBal('${w.id}',this.value)" placeholder="0">
+        ${wallets.length>1?`<button class="btn bd bs" onclick="delWallet('${w.id}')">🗑️</button>`:''}
+      </div>
+    </div>`).join('');
+}
+function updWalletBal(id,v){const w=wallets.find(x=>x.id===id);if(w){w.balance=parseFloat(v)||0;save();rdFin();}}
+function delWallet(id){
+  if(!confirm('刪除此錢包？'))return;
+  wallets=wallets.filter(w=>w.id!==id);save();rdWalletModal();rdFin();snk('🗑️ 已刪除');
+}
+function rdWalletTags(){
+  const el=document.getElementById('tx-wallet-tags');
+  el.innerHTML=`<span class="wallet-sel-tag ${!selTxWallet?'sel':''}" data-wid="" onclick="selWallet('')">不指定</span>`+
+    wallets.map(w=>`<span class="wallet-sel-tag ${selTxWallet===w.id?'sel':''}" data-wid="${w.id}" onclick="selWallet('${w.id}')">${w.em} ${esc(w.name)}</span>`).join('');
+}
+function selWallet(id){
+  selTxWallet=id||null;
+  document.getElementById('tx-wallet-tags').querySelectorAll('.wallet-sel-tag').forEach(t=>t.classList.toggle('sel',t.dataset.wid===id));
+}
+// Patch rdFin to show wallet overview
+function rdWalletOverview(){
+  const el=document.getElementById('wallet-overview');
+  if(!el)return;
+  const cur=cfg.cur||'HK$';
+  // compute wallet balances from transactions
+  const balances={};
+  wallets.forEach(w=>{balances[w.id]=w.balance||0;});
+  // running balance adjustments from transactions
+  // (wallet balance is set manually by user, txs just track which wallet)
+  el.innerHTML=wallets.map(w=>{
+    const wTxs=txs.filter(t=>t.wid===w.id);
+    const inc=wTxs.filter(t=>t.tp==='income').reduce((s,t)=>s+t.amt,0);
+    const exp=wTxs.filter(t=>t.tp==='expense').reduce((s,t)=>s+t.amt,0);
+    const net=inc-exp;
+    return `<div class="wallet-item">
+      <div class="wallet-em">${w.em}</div>
+      <div style="flex:1"><div class="wallet-name">${esc(w.name)}</div>
+        <div style="font-size:11px;color:var(--tx2)">記錄收入 ${cur}${inc.toLocaleString()} · 支出 ${cur}${exp.toLocaleString()}</div>
+      </div>
+      <div class="wallet-bal">${cur}${(w.balance+net).toLocaleString()}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+//  ACTIVITY LOG
+// ══════════════════════════════════════
+let selActType='重訓',selActFeel=null;
+const WEIGHT_TYPES=['重訓','HIIT'];
+const CARDIO_TYPES=['跑步','游泳','單車'];
+const GENERIC_TYPES=['瑜伽','球類','其他'];
+
+function openActModal(editId){
+  document.getElementById('act-id').value=editId||'';
+  document.getElementById('act-date').value=today();
+  document.getElementById('mo-act-title').textContent=editId?'編輯活動':'新增活動記錄';
+  document.getElementById('act-type-tags').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  document.getElementById('act-feel').querySelectorAll('.tag').forEach(t=>t.classList.remove('sel'));
+  selActType='重訓';selActFeel=null;
+  if(editId){
+    const act=activities.find(a=>a.id===editId);
+    if(act){
+      document.getElementById('act-date').value=act.date||today();
+      selActType=act.type;selActFeel=act.feel||null;
+      document.getElementById('act-type-tags').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.at===selActType));
+      if(act.feel) document.getElementById('act-feel').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.f===act.feel));
+    }
+  }
+  updActTypeUI();
+  // populate sets if editing
+  if(editId){
+    const act=activities.find(a=>a.id===editId);
+    if(act){
+      if(WEIGHT_TYPES.includes(selActType)&&act.sets){
+        const sb=document.getElementById('set-builder');
+        // clear and re-add
+        while(sb.children.length>1)sb.removeChild(sb.lastChild);
+        act.sets.forEach(s=>addSetRow(s));
+      }
+      if(CARDIO_TYPES.includes(selActType)&&act.sets){
+        const cb=document.getElementById('cardio-builder');
+        while(cb.children.length>1)cb.removeChild(cb.lastChild);
+        act.sets.forEach(s=>addCardioRow(s));
+      }
+      if(GENERIC_TYPES.includes(selActType)){
+        document.getElementById('act-notes').value=act.notes||'';
+      }
+    }
+  } else {
+    resetSetBuilder();
+  }
+  openM('mo-act');
+}
+function updActTypeUI(){
+  const isW=WEIGHT_TYPES.includes(selActType);
+  const isC=CARDIO_TYPES.includes(selActType);
+  const isG=GENERIC_TYPES.includes(selActType);
+  document.getElementById('act-weights-section').style.display=isW?'block':'none';
+  document.getElementById('act-cardio-section').style.display=isC?'block':'none';
+  document.getElementById('act-notes-section').style.display=isG?'block':'none';
+}
+function resetSetBuilder(){
+  // Weight training
+  const sb=document.getElementById('set-builder');
+  while(sb.children.length>1)sb.removeChild(sb.lastChild);
+  addSetRow();
+  // Cardio
+  const cb=document.getElementById('cardio-builder');
+  while(cb.children.length>1)cb.removeChild(cb.lastChild);
+  addCardioRow();
+  document.getElementById('act-notes').value='';
+}
+function addSetRow(data){
+  const sb=document.getElementById('set-builder');
+  const row=document.createElement('div');
+  row.className='set-row';
+  row.innerHTML=`
+    <input type="text" class="fc s-name" placeholder="動作名稱" value="${data?.name||''}">
+    <input type="number" class="fc s-sets" placeholder="4" value="${data?.sets||''}" style="text-align:center">
+    <input type="number" class="fc s-reps" placeholder="12" value="${data?.reps||''}" style="text-align:center">
+    <input type="number" class="fc s-weight" placeholder="20" step="0.5" value="${data?.weight||''}" style="text-align:center">
+    <button class="btn bd bs" onclick="this.parentNode.remove()">✕</button>`;
+  sb.appendChild(row);
+}
+function addCardioRow(data){
+  const cb=document.getElementById('cardio-builder');
+  const row=document.createElement('div');
+  row.className='set-row-cardio';
+  row.innerHTML=`
+    <input type="text" class="fc c-name" placeholder="項目/路線" value="${data?.name||''}">
+    <input type="number" class="fc c-dist" placeholder="10" step="0.1" value="${data?.dist||''}" style="text-align:center">
+    <input type="number" class="fc c-time" placeholder="60" value="${data?.time||''}" style="text-align:center">
+    <button class="btn bd bs" onclick="this.parentNode.remove()">✕</button>`;
+  cb.appendChild(row);
+}
+document.getElementById('act-type-tags').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('act-type-tags').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.add('sel');selActType=t.dataset.at;updActTypeUI();
+  });
+});
+document.getElementById('act-feel').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('act-feel').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.toggle('sel');selActFeel=t.classList.contains('sel')?t.dataset.f:null;
+  });
+});
+document.getElementById('btn-add-set').addEventListener('click',()=>addSetRow());
+document.getElementById('btn-add-cardio').addEventListener('click',()=>addCardioRow());
+document.getElementById('btn-save-act').addEventListener('click',()=>{
+  const date=document.getElementById('act-date').value||today();
+  const id=document.getElementById('act-id').value||uid();
+  let sets=[];
+  if(WEIGHT_TYPES.includes(selActType)){
+    document.getElementById('set-builder').querySelectorAll('.set-row').forEach(row=>{
+      const name=row.querySelector('.s-name')?.value.trim();
+      const s=row.querySelector('.s-sets')?.value;
+      const r=row.querySelector('.s-reps')?.value;
+      const w=row.querySelector('.s-weight')?.value;
+      if(name) sets.push({name,sets:parseInt(s)||null,reps:parseInt(r)||null,weight:parseFloat(w)||null});
+    });
+  } else if(CARDIO_TYPES.includes(selActType)){
+    document.getElementById('cardio-builder').querySelectorAll('.set-row-cardio').forEach(row=>{
+      const name=row.querySelector('.c-name')?.value.trim();
+      const d=row.querySelector('.c-dist')?.value;
+      const t=row.querySelector('.c-time')?.value;
+      if(name||d) sets.push({name,dist:parseFloat(d)||null,time:parseInt(t)||null});
+    });
+  }
+  const notes=document.getElementById('act-notes').value.trim();
+  activities=activities.filter(a=>a.id!==id);
+  activities.push({id,date,type:selActType,sets,notes,feel:selActFeel,ts:Date.now()});
+  save();closeM('mo-act');rdHealth();snk('✅ 活動已記錄');
+});
+function rdActList(){
+  const el=document.getElementById('act-list');
+  const td=today();
+  const todayActs=[...activities].filter(a=>a.date===td).sort((a,b)=>b.ts-a.ts);
+  if(!todayActs.length){el.innerHTML=`<div style="color:var(--tx2);font-size:13px;padding:8px 0">今日未有活動記錄</div>`;return;}
+  const feelEm={'輕鬆':'😊','適中':'💪','辛苦':'😅','極限':'🔥'};
+  el.innerHTML=todayActs.map(act=>{
+    let detail='';
+    if(WEIGHT_TYPES.includes(act.type)&&act.sets?.length){
+      detail=act.sets.map(s=>`<div class="act-row">
+        <span class="lbl">${esc(s.name)}</span>
+        <span class="val">${s.sets?s.sets+'組':'-'}</span>
+        <span class="val">${s.reps?s.reps+'次':'-'}</span>
+        <span class="val">${s.weight?s.weight+'kg':'-'}</span>
+      </div>`).join('');
+    } else if(CARDIO_TYPES.includes(act.type)&&act.sets?.length){
+      detail=act.sets.map(s=>`<div class="act-row-cardio">
+        <span style="font-size:13px;font-weight:600">${esc(s.name||act.type)}</span>
+        <span style="font-size:12px;color:var(--tx2);text-align:center">${s.dist?s.dist+'km':'-'}</span>
+        <span style="font-size:12px;color:var(--tx2);text-align:center">${s.time?s.time+'分鐘':'-'}${s.dist&&s.time?` (${(s.time/s.dist).toFixed(1)}min/km)`:''}</span>
+      </div>`).join('');
+    } else if(act.notes){
+      detail=`<div style="font-size:13px;color:var(--tx2);margin-top:4px">${esc(act.notes)}</div>`;
+    }
+    return `<div class="act-item">
+      <div class="act-hdr">
+        <span class="act-type-badge">${act.type}</span>
+        ${act.feel?`<span style="font-size:14px">${feelEm[act.feel]||''} ${act.feel}</span>`:''}
+        <span class="act-date">${act.date}</span>
+        <button class="btn bg bs" onclick="openActModal('${act.id}')">✏️</button>
+        <button class="btn bg bs" onclick="delAct('${act.id}')">🗑️</button>
+      </div>
+      <div class="act-rows">${detail}</div>
+    </div>`;
+  }).join('');
+}
+function delAct(id){activities=activities.filter(a=>a.id!==id);save();rdHealth();snk('🗑️ 已刪除')}
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+applyTheme(cfg.theme||'#6C63FF');
+initCal();initFin();
+rdDash();updateAccHdr();
+
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body>
+</html>
