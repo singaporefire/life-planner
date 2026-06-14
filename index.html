@@ -932,7 +932,34 @@ canvas{max-width:100%;display:block}
         <input type="number" id="tx-amt" class="fc" placeholder="0.00" step="0.01">
       </div>
     </div>
-    <div class="fg"><label class="fl">分類</label><div class="tags" id="tx-cats"></div></div>
+    <div class="fg">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+        <label class="fl" style="margin-bottom:0">分類</label>
+        <button class="btn bg bs" id="btn-tx-inline-cat" style="font-size:11px;padding:3px 8px">＋ 新增分類</button>
+      </div>
+      <div class="tags" id="tx-cats" style="flex-wrap:wrap"></div>
+      <div id="inline-cat-add" style="display:none;margin-top:8px;background:var(--bg2);border-radius:10px;padding:10px;border:1px solid var(--bd)">
+        <div style="font-size:11px;color:var(--tx2);margin-bottom:6px;font-weight:600">快速新增分類</div>
+        <div class="tags" id="inline-cat-em" style="flex-wrap:nowrap;overflow-x:auto;gap:4px;padding-bottom:4px;margin-bottom:8px">
+          <span class="tag tsm sel" data-icem="📦">📦</span>
+          <span class="tag tsm" data-icem="🛡️">🛡️</span><span class="tag tsm" data-icem="🏥">🏥</span>
+          <span class="tag tsm" data-icem="🍽️">🍽️</span><span class="tag tsm" data-icem="💡">💡</span>
+          <span class="tag tsm" data-icem="📱">📱</span><span class="tag tsm" data-icem="👤">👤</span>
+          <span class="tag tsm" data-icem="🚗">🚗</span><span class="tag tsm" data-icem="✈️">✈️</span>
+          <span class="tag tsm" data-icem="⛽">⛽</span><span class="tag tsm" data-icem="🎂">🎂</span>
+          <span class="tag tsm" data-icem="🔧">🔧</span><span class="tag tsm" data-icem="🎓">🎓</span>
+          <span class="tag tsm" data-icem="🌿">🌿</span><span class="tag tsm" data-icem="🎵">🎵</span>
+          <span class="tag tsm" data-icem="🎬">🎬</span><span class="tag tsm" data-icem="🍺">🍺</span>
+          <span class="tag tsm" data-icem="☕">☕</span><span class="tag tsm" data-icem="🏢">🏢</span>
+          <span class="tag tsm" data-icem="🎁">🎁</span><span class="tag tsm" data-icem="💰">💰</span>
+          <span class="tag tsm" data-icem="🎉">🎉</span><span class="tag tsm" data-icem="📮">📮</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="inline-cat-name" class="fc" placeholder="分類名稱（如：保險、停車費）" style="flex:1">
+          <button class="btn bp bs" id="btn-inline-add-cat">新增</button>
+        </div>
+      </div>
+    </div>
     <div class="fg"><label class="fl">💳 錢包（選填）</label><div class="tags" id="tx-wallet-tags"></div></div>
     <div class="fg"><label class="fl">日期</label><input type="date" id="tx-date" class="fc"></div>
     <div class="fg"><label class="fl">備注</label><input type="text" id="tx-note" class="fc" placeholder="選填"></div>
@@ -1692,17 +1719,26 @@ function rdCal(){
   const fd=new Date(cY,cM,1).getDay(),dim=new Date(cY,cM+1,0).getDate(),pd=new Date(cY,cM,0).getDate();
   const DL=cfg.lang==='zh'?['日','一','二','三','四','五','六']:['Su','Mo','Tu','We','Th','Fr','Sa'];
   let h=DL.map(d=>`<div style="text-align:center;font-size:11px;font-weight:600;color:var(--tx2);padding:3px 0">${d}</div>`).join('');
-  for(let i=0;i<fd;i++) h+=`<div style="min-height:34px;opacity:.3;font-size:12px;display:flex;align-items:flex-start;justify-content:center;padding-top:4px">${pd-fd+1+i}</div>`;
+  for(let i=0;i<fd;i++) h+=`<div style="min-height:48px;opacity:.3;font-size:12px;display:flex;align-items:flex-start;justify-content:center;padding-top:4px">${pd-fd+1+i}</div>`;
   for(let d=1;d<=dim;d++){
     const ds=`${cY}-${String(cM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const e=getEvts(ds),isT=ds===td,isSel=ds===cSel;
-    const dots=e.slice(0,3).map(x=>`<div style="width:5px;height:5px;border-radius:50%;background:${x.col||'var(--P)'};margin:1px auto"></div>`).join('');
-    h+=`<div onclick="selDay('${ds}')" style="min-height:34px;border-radius:9px;display:flex;flex-direction:column;align-items:center;padding-top:4px;cursor:pointer;font-size:13px;
+    const dots=e.slice(0,2).map(x=>`<div style="width:4px;height:4px;border-radius:50%;background:${isT?'rgba(255,255,255,0.8)':x.col||'var(--P)'};margin:0 1px;display:inline-block"></div>`).join('');
+    // transaction daily totals
+    const dayTxs=txs.filter(t=>t.date===ds);
+    const dayExp=dayTxs.filter(t=>t.tp==='expense').reduce((s,t)=>s+t.amt,0);
+    const dayInc=dayTxs.filter(t=>t.tp==='income').reduce((s,t)=>s+t.amt,0);
+    const fmt=v=>v>=10000?(v/10000).toFixed(1)+'w':v>=1000?(v/1000).toFixed(1)+'k':v.toLocaleString();
+    const txRow=(dayExp||dayInc)?`<div style="display:flex;flex-direction:column;align-items:center;line-height:1.2;margin-top:1px">
+      ${dayExp?`<div style="font-size:8px;color:${isT?'rgba(255,180,180,1)':'#ef4444'};font-weight:700">${fmt(dayExp)}</div>`:''}
+      ${dayInc?`<div style="font-size:8px;color:${isT?'rgba(180,255,180,1)':'#22c55e'};font-weight:700">+${fmt(dayInc)}</div>`:''}
+    </div>`:'';
+    h+=`<div onclick="selDay('${ds}')" style="min-height:48px;border-radius:9px;display:flex;flex-direction:column;align-items:center;padding-top:4px;cursor:pointer;font-size:13px;
       background:${isT?'var(--P)':isSel?'var(--PL)':'transparent'};color:${isT?'#fff':isSel?'var(--P)':'inherit'};font-weight:${isT||isSel?700:400};transition:background .15s">
-      ${d}${dots}</div>`;
+      ${d}<div style="display:flex;gap:1px;margin-top:2px">${dots}</div>${txRow}</div>`;
   }
   const rem=(7-((fd+dim)%7))%7;
-  for(let i=1;i<=rem;i++) h+=`<div style="min-height:34px;opacity:.3;font-size:12px;display:flex;align-items:flex-start;justify-content:center;padding-top:4px">${i}</div>`;
+  for(let i=1;i<=rem;i++) h+=`<div style="min-height:48px;opacity:.3;font-size:12px;display:flex;align-items:flex-start;justify-content:center;padding-top:4px">${i}</div>`;
   document.getElementById('cal-grid').innerHTML=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">${h}</div>`;
   rdCalDay();
 }
@@ -2338,7 +2374,42 @@ function rdTxCats(tp){
   el.innerHTML=cats.map((c,i)=>`<span class="tag ${(selCat===c.id||(i===0&&!cats.find(x=>x.id===selCat)))?'sel':''}" data-c="${c.id}">${c.em} ${c.name}</span>`).join('');
   el.querySelectorAll('.tag').forEach(t=>{t.addEventListener('click',()=>{el.querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selCat=t.dataset.c;});});
   selCat=el.querySelector('.tag.sel')?.dataset.c||cats[0].id;
+  // hide inline add panel when switching types
+  const panel=document.getElementById('inline-cat-add');
+  if(panel)panel.style.display='none';
 }
+// Inline category quick-add in transaction modal
+let inlineCatEm='📦';
+document.getElementById('btn-tx-inline-cat').addEventListener('click',()=>{
+  const panel=document.getElementById('inline-cat-add');
+  panel.style.display=panel.style.display==='none'?'block':'none';
+});
+document.getElementById('inline-cat-em').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('inline-cat-em').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.add('sel');inlineCatEm=t.dataset.icem;
+  });
+});
+document.getElementById('btn-inline-add-cat').addEventListener('click',()=>{
+  const name=document.getElementById('inline-cat-name').value.trim();
+  if(!name){snk('⚠️ 請填寫分類名稱');return;}
+  const id='custom_'+uid();
+  if(selTp==='income'){txCatsI.splice(txCatsI.length-1,0,{id,em:inlineCatEm,name});}
+  else{txCatsE.splice(txCatsE.length-1,0,{id,em:inlineCatEm,name});}
+  document.getElementById('inline-cat-name').value='';
+  // reset emoji
+  document.getElementById('inline-cat-em').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  inlineCatEm='📦';
+  selCat=id; // auto-select the new category
+  save();rdTxCats(selTp);
+  // re-select new cat (rdTxCats resets selCat)
+  setTimeout(()=>{
+    selCat=id;
+    document.getElementById('tx-cats').querySelectorAll('.tag').forEach(x=>x.classList.toggle('sel',x.dataset.c===id));
+  },10);
+  document.getElementById('inline-cat-add').style.display='none';
+  snk('✅ '+inlineCatEm+' '+name+' 已新增並選取');
+});
 document.getElementById('tx-type').querySelectorAll('.tag').forEach(t=>{
   t.addEventListener('click',()=>{document.getElementById('tx-type').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selTp=t.dataset.tp;rdTxCats(selTp);});
 });
