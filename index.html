@@ -1332,6 +1332,8 @@ firebase.initializeApp({
 });
 const fauth=firebase.auth();
 const fdb=firebase.firestore();
+// Enable offline persistence so data loads even without network
+fdb.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 
 let authMode='login';
 function switchAuth(m){
@@ -1399,31 +1401,56 @@ function doGoogle(){
     });
 }
 
-// Cloud sync (debounced, 2s after last change)
-let syncTimer;
+// ── Cloud sync helpers ────────────────────────────────────────────────────────
+// _lm  = local last-modified timestamp (set on every save())
+// cloud ts = timestamp stored in Firestore on every successful upload
+// Rule: whichever is NEWER wins; this prevents any device from clobbering fresher data
+
+function _localMod(){return parseInt(localStorage.getItem('lp__lm')||'0');}
+function _setLocalMod(){localStorage.setItem('lp__lm',Date.now().toString());}
+
+let syncTimer,_syncInFlight=false;
 function syncToCloud(){
   if(!fauth.currentUser)return;
   clearTimeout(syncTimer);
   syncTimer=setTimeout(async()=>{
+    if(_syncInFlight)return;
+    _syncInFlight=true;
     const data={};
     for(let i=0;i<localStorage.length;i++){
       const k=localStorage.key(i);
       if(k&&k.startsWith('lp_'))data[k.slice(3)]=localStorage.getItem(k);
     }
+    const ts=_localMod()||Date.now();
     try{
-      await fdb.collection('users').doc(fauth.currentUser.uid).set({data,ts:Date.now()});
+      await fdb.collection('users').doc(fauth.currentUser.uid).set({data,ts});
       const el=document.getElementById('sync-status');
       if(el)el.textContent='✅ 已同步 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'});
-    }catch(e){console.warn('sync err',e);}
+    }catch(e){
+      console.warn('sync err',e);
+      const el=document.getElementById('sync-status');
+      if(el)el.textContent='⚠️ 同步失敗，將在連線後重試';
+    }finally{_syncInFlight=false;}
   },2000);
 }
+
 async function loadFromCloud(){
   if(!fauth.currentUser)return;
   try{
+    // Use server source on first load to ensure fresh data; falls back to cache if offline
     const doc=await fdb.collection('users').doc(fauth.currentUser.uid).get();
-    if(doc.exists&&doc.data().data){
+    if(!doc.exists||!doc.data().data)return;
+
+    const cloudTs  = doc.data().ts  || 0;
+    const localMod = _localMod();
+
+    if(cloudTs >= localMod){
+      // Cloud is equal or newer → overwrite local (new device, or another device made changes)
       Object.entries(doc.data().data).forEach(([k,v])=>localStorage.setItem('lp_'+k,v));
+      // Align local mod timestamp so next sync doesn't re-upload unnecessarily
+      localStorage.setItem('lp__lm', cloudTs.toString());
     }
+    // else: local is newer (offline edits) → keep local, next syncToCloud() will upload
   }catch(e){console.warn('load err',e);}
 }
 
@@ -1609,6 +1636,7 @@ function save(){
   DB.set('txCatsE',txCatsE);DB.set('txCatsI',txCatsI);
   DB.set('exLib',exLib);DB.set('recurTxs',recurTxs);
   DB.set('goalCats',goalCats);
+  _setLocalMod(); // stamp local modification time before uploading
   syncToCloud();
 }
 loadData();
@@ -3698,16 +3726,33 @@ document.getElementById('btn-sync-now').addEventListener('click',async()=>{
 
 // Auth state → init app
 let appInited=false;
-const _authLoadEl=document.getElementById('auth-loading');
 
 fauth.onAuthStateChanged(async user=>{
   if(user){
-    document.getElementById('auth-ov').style.display='none';
-    if(_authLoadEl)_authLoadEl.style.display='none';
-    const emailEl=document.getElementById('user-email-lbl');
-    if(emailEl)emailEl.textContent=user.email||'';
-    try{ await loadFromCloud(); }catch(e){ console.warn('cloud load err',e); }
+    // Show "loading data" spinner on the auth overlay while we fetch cloud data
+    const authOv=document.getElementById('auth-ov');
+    const loadEl=document.getElementById('auth-loading');
+    const errEl =document.getElementById('auth-err');
+    if(errEl) errEl.classList.remove('on');
+    if(loadEl) loadEl.innerHTML='☁️ 正在讀取帳戶資料…';
+    if(loadEl) loadEl.style.display='block';
+    // Keep auth overlay visible but hide the login form while syncing
+    const authBox=document.querySelector('.auth-box');
+    if(authBox) authBox.style.opacity='0';
+    if(authOv)  authOv.style.display='flex';
+
+    // Load cloud data (with timestamp merge), then read into memory
+    await loadFromCloud();
     loadData();
+
+    // Hide overlay, show app
+    if(authOv)  authOv.style.display='none';
+    if(authBox) authBox.style.opacity='1';
+    if(loadEl)  loadEl.style.display='none';
+
+    const emailEl=document.getElementById('user-email-lbl');
+    if(emailEl) emailEl.textContent=user.email||'';
+
     if(!appInited){
       appInited=true;
       applyTheme(cfg.theme||'#6C63FF');
@@ -3718,6 +3763,8 @@ fauth.onAuthStateChanged(async user=>{
     }
     rdDash();updateAccHdr();
   } else {
+    const authBox=document.querySelector('.auth-box');
+    if(authBox) authBox.style.opacity='1';
     document.getElementById('auth-ov').style.display='flex';
   }
 });
