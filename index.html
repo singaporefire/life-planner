@@ -1457,6 +1457,32 @@ const DEFAULT_GOAL_CATS=[
   {id:'life',  name:'生活',em:'🏠',builtIn:true},
   {id:'other', name:'其他',em:'📌',builtIn:true}
 ];
+const DEFAULT_CE=[
+  {id:'food',em:'🍔',name:'飲食',builtIn:true},
+  {id:'dining',em:'🍽️',name:'外出用餐',builtIn:true},
+  {id:'transport',em:'🚇',name:'交通',builtIn:true},
+  {id:'shopping',em:'🛍️',name:'購物',builtIn:true},
+  {id:'entertain',em:'🎮',name:'娛樂',builtIn:true},
+  {id:'health',em:'💊',name:'醫療',builtIn:true},
+  {id:'insurance',em:'🛡️',name:'保險',builtIn:true},
+  {id:'edu',em:'📚',name:'教育',builtIn:true},
+  {id:'housing',em:'🏠',name:'住屋/租金',builtIn:true},
+  {id:'utility',em:'💡',name:'水電費',builtIn:true},
+  {id:'phone',em:'📱',name:'電話費',builtIn:true},
+  {id:'personal',em:'👤',name:'個人護理',builtIn:true},
+  {id:'pet',em:'🐾',name:'寵物',builtIn:true},
+  {id:'other',em:'📦',name:'其他',builtIn:true}
+];
+const DEFAULT_CI=[
+  {id:'salary',em:'💼',name:'薪金',builtIn:true},
+  {id:'freelance',em:'💻',name:'接案/兼職',builtIn:true},
+  {id:'invest',em:'📈',name:'投資',builtIn:true},
+  {id:'gift',em:'🎁',name:'禮金',builtIn:true},
+  {id:'bonus',em:'🎉',name:'獎金',builtIn:true},
+  {id:'rental',em:'🏢',name:'租金收入',builtIn:true},
+  {id:'subsidy',em:'🏛️',name:'補貼/津貼',builtIn:true},
+  {id:'other',em:'💵',name:'其他',builtIn:true}
+];
 
 // ══════════════════════════════════════
 //  DATA
@@ -2271,33 +2297,7 @@ document.getElementById('btn-save-note').addEventListener('click',()=>{
 // ══════════════════════════════════════
 let fY,fM,selTp='expense',selCat='food';
 function initFin(){const n=new Date();fY=n.getFullYear();fM=n.getMonth();}
-// Default category lists (stored in txCatsE / txCatsI)
-const DEFAULT_CE=[
-  {id:'food',em:'🍔',name:'飲食',builtIn:true},
-  {id:'dining',em:'🍽️',name:'外出用餐',builtIn:true},
-  {id:'transport',em:'🚇',name:'交通',builtIn:true},
-  {id:'shopping',em:'🛍️',name:'購物',builtIn:true},
-  {id:'entertain',em:'🎮',name:'娛樂',builtIn:true},
-  {id:'health',em:'💊',name:'醫療',builtIn:true},
-  {id:'insurance',em:'🛡️',name:'保險',builtIn:true},
-  {id:'edu',em:'📚',name:'教育',builtIn:true},
-  {id:'housing',em:'🏠',name:'住屋/租金',builtIn:true},
-  {id:'utility',em:'💡',name:'水電費',builtIn:true},
-  {id:'phone',em:'📱',name:'電話費',builtIn:true},
-  {id:'personal',em:'👤',name:'個人護理',builtIn:true},
-  {id:'pet',em:'🐾',name:'寵物',builtIn:true},
-  {id:'other',em:'📦',name:'其他',builtIn:true}
-];
-const DEFAULT_CI=[
-  {id:'salary',em:'💼',name:'薪金',builtIn:true},
-  {id:'freelance',em:'💻',name:'接案/兼職',builtIn:true},
-  {id:'invest',em:'📈',name:'投資',builtIn:true},
-  {id:'gift',em:'🎁',name:'禮金',builtIn:true},
-  {id:'bonus',em:'🎉',name:'獎金',builtIn:true},
-  {id:'rental',em:'🏢',name:'租金收入',builtIn:true},
-  {id:'subsidy',em:'🏛️',name:'補貼/津貼',builtIn:true},
-  {id:'other',em:'💵',name:'其他',builtIn:true}
-];
+// DEFAULT_CE and DEFAULT_CI are defined in the DEFAULT CONSTANTS section above loadData()
 // Color palette for categories
 const CC_BASE={food:'#f59e0b',dining:'#e11d48',transport:'#3b82f6',shopping:'#ec4899',
   entertain:'#8b5cf6',health:'#ef4444',insurance:'#f97316',edu:'#6366f1',
