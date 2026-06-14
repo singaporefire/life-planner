@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="生活規劃">
 <title>生活規劃家 · Life Planner</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -1800,7 +1801,9 @@ function qCheck(gid){
 // ══════════════════════════════════════
 //  CALENDAR
 // ══════════════════════════════════════
-let cY,cM,cSel;
+// Initialize with today so rdCal() works even before initCal() is called
+const _cn=new Date();
+let cY=_cn.getFullYear(),cM=_cn.getMonth(),cSel=today();
 function initCal(){const n=new Date();cY=n.getFullYear();cM=n.getMonth();cSel=today();}
 function daysLeft(ds){const t=new Date(ds+'T00:00:00'),n=new Date();n.setHours(0,0,0,0);return Math.round((t-n)/86400000)}
 function getEvts(ds){
@@ -2357,7 +2360,8 @@ document.getElementById('btn-save-note').addEventListener('click',()=>{
 // ══════════════════════════════════════
 //  FINANCE
 // ══════════════════════════════════════
-let fY,fM,selTp='expense',selCat='food';
+const _fn=new Date();
+let fY=_fn.getFullYear(),fM=_fn.getMonth(),selTp='expense',selCat='food';
 function initFin(){const n=new Date();fY=n.getFullYear();fM=n.getMonth();}
 // DEFAULT_CE and DEFAULT_CI are defined in the DEFAULT CONSTANTS section above loadData()
 // Color palette for categories
