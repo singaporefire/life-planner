@@ -285,6 +285,15 @@ canvas{max-width:100%;display:block}
     </div>
     <button class="btn bp bb" id="btn-auth" style="margin-top:4px;padding:13px" onclick="doAuth()">登入</button>
     <div class="auth-loading" id="auth-loading" style="display:none">⏳ 正在登入...</div>
+    <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+      <div style="flex:1;height:1px;background:#e5e7eb"></div>
+      <span style="font-size:12px;color:#9ca3af">或</span>
+      <div style="flex:1;height:1px;background:#e5e7eb"></div>
+    </div>
+    <button id="btn-google" onclick="doGoogle()" style="width:100%;padding:13px;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:15px;font-weight:600;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;color:#1a1a2e;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#4285F4" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/><path fill="#34A853" d="M6.3 14.7l7 5.1C15 16.1 19.1 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 16.3 2 9.7 6.4 6.3 14.7z"/><path fill="#FBBC05" d="M24 46c5.9 0 10.9-2 14.5-5.4l-6.7-5.5C29.9 36.6 27.1 37.5 24 37.5c-6.1 0-11.2-4.1-13-9.6l-7 5.4C7.5 41.8 15.1 46 24 46z"/><path fill="#EA4335" d="M44.5 20H24v8.5h11.8c-1 3-3.2 5.5-6.2 7.1l6.7 5.5C40.5 37.5 44.5 31.3 44.5 24c0-1.3-.2-2.7-.5-4z"/></svg>
+      以 Google 帳號登入
+    </button>
   </div>
 </div>
 
@@ -919,7 +928,19 @@ function authErrMsg(code){
   return({'auth/email-already-in-use':'此電郵已被使用','auth/invalid-email':'電郵格式不正確',
     'auth/weak-password':'密碼太短（最少6個字符）','auth/user-not-found':'找不到此帳號',
     'auth/wrong-password':'密碼錯誤','auth/invalid-credential':'電郵或密碼錯誤',
-    'auth/too-many-requests':'嘗試次數過多，請稍後再試'}[code]||'登入失敗，請重試');
+    'auth/too-many-requests':'嘗試次數過多，請稍後再試',
+    'auth/operation-not-allowed':'此登入方式未啟用',
+    'auth/network-request-failed':'網絡錯誤，請檢查連線',
+    'auth/popup-closed-by-user':'登入視窗已關閉，請重試',
+    'auth/cancelled-popup-request':'登入已取消'}[code]||`登入失敗 (${code||'unknown'})`);
+}
+function doGoogle(){
+  const errEl=document.getElementById('auth-err');
+  errEl.classList.remove('on');
+  const provider=new firebase.auth.GoogleAuthProvider();
+  fauth.signInWithPopup(provider).catch(e=>{
+    errEl.textContent=authErrMsg(e.code);errEl.classList.add('on');
+  });
 }
 
 // Cloud sync (debounced, 2s after last change)
