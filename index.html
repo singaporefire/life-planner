@@ -236,9 +236,58 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
 .snk.on{opacity:1}
 canvas{max-width:100%;display:block}
+
+/* AUTH OVERLAY */
+#auth-ov{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#6C63FF,#9b59b6);
+  display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-box{background:#fff;border-radius:24px;padding:28px 22px;width:100%;max-width:400px;
+  box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.auth-logo{text-align:center;margin-bottom:20px}
+.auth-logo .em{font-size:48px}
+.auth-logo h2{font-size:22px;font-weight:700;color:#1a1a2e;margin-top:8px}
+.auth-logo p{font-size:12px;color:#6b7280;margin-top:3px}
+.auth-tabs{display:flex;background:#F0F1FA;border-radius:10px;padding:3px;margin-bottom:18px;gap:3px}
+.auth-tab{flex:1;padding:9px;border:none;background:none;border-radius:8px;font-size:14px;
+  font-weight:600;cursor:pointer;color:#6b7280;transition:all .15s;font-family:var(--fn)}
+.auth-tab.on{background:#fff;color:#6C63FF;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.auth-err{background:#fee2e2;color:#ef4444;border-radius:8px;padding:10px 13px;font-size:13px;
+  margin-bottom:12px;display:none;line-height:1.4}
+.auth-err.on{display:block}
+.auth-loading{text-align:center;color:#6b7280;font-size:13px;padding:8px}
 </style>
 </head>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <body>
+<!-- AUTH OVERLAY -->
+<div id="auth-ov">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="em">📅</div>
+      <h2>生活規劃家</h2>
+      <p>Life Planner · 跨裝置同步你的生活數據</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab on" id="tab-login" onclick="switchAuth('login')">登入</button>
+      <button class="auth-tab" id="tab-reg" onclick="switchAuth('reg')">建立帳號</button>
+    </div>
+    <div class="auth-err" id="auth-err"></div>
+    <div class="fg"><label class="fl">電郵地址</label>
+      <input type="email" id="auth-email" class="fc" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="fg"><label class="fl">密碼</label>
+      <input type="password" id="auth-pw" class="fc" placeholder="最少6個字符" autocomplete="current-password">
+    </div>
+    <div class="fg" id="auth-pw2-wrap" style="display:none">
+      <label class="fl">確認密碼</label>
+      <input type="password" id="auth-pw2" class="fc" placeholder="再次輸入密碼">
+    </div>
+    <button class="btn bp bb" id="btn-auth" style="margin-top:4px;padding:13px" onclick="doAuth()">登入</button>
+    <div class="auth-loading" id="auth-loading" style="display:none">⏳ 正在登入...</div>
+  </div>
+</div>
+
 <div id="app">
 
 <!-- ══ ACCOUNT MODAL ══ -->
@@ -547,7 +596,18 @@ canvas{max-width:100%;display:block}
       <button class="btn bd bs" id="btn-clr">🗑️</button>
     </div>
   </div>
-  <div style="text-align:center;color:var(--tx2);font-size:11px;padding:18px">生活規劃家 v2.1 · All data stored locally</div>
+  <div class="card">
+    <div class="ct">☁️ 雲端帳號</div>
+    <div class="sr">
+      <div><div class="slbl">登入帳號</div><div class="ssub" id="user-email-lbl" style="color:var(--P)"></div></div>
+      <button class="btn bd bs" id="btn-logout">登出</button>
+    </div>
+    <div class="sr">
+      <div><div class="slbl">雲端同步</div><div class="ssub" id="sync-status">資料自動同步至雲端</div></div>
+      <button class="btn bg bs" id="btn-sync-now">立即同步</button>
+    </div>
+  </div>
+  <div style="text-align:center;color:var(--tx2);font-size:11px;padding:18px">生活規劃家 v3.0 · Cloud Sync Enabled ☁️</div>
 </div>
 
 <!-- ══ NAV ══ -->
@@ -811,6 +871,86 @@ canvas{max-width:100%;display:block}
 
 <script>
 // ══════════════════════════════════════
+//  FIREBASE AUTH + CLOUD SYNC
+// ══════════════════════════════════════
+firebase.initializeApp({
+  apiKey:"AIzaSyAA5szORk3krLmiDzE6wLHcUAzpIouPJBI",
+  authDomain:"life-planner-f6370.firebaseapp.com",
+  projectId:"life-planner-f6370",
+  storageBucket:"life-planner-f6370.firebasestorage.app",
+  messagingSenderId:"180730468562",
+  appId:"1:180730468562:web:e7712233c41b8c7c6ef50b"
+});
+const fauth=firebase.auth();
+const fdb=firebase.firestore();
+
+let authMode='login';
+function switchAuth(m){
+  authMode=m;
+  document.getElementById('tab-login').classList.toggle('on',m==='login');
+  document.getElementById('tab-reg').classList.toggle('on',m==='reg');
+  document.getElementById('auth-pw2-wrap').style.display=m==='reg'?'block':'none';
+  document.getElementById('btn-auth').textContent=m==='login'?'登入':'建立帳號';
+  document.getElementById('auth-err').classList.remove('on');
+}
+['auth-email','auth-pw','auth-pw2'].forEach(id=>{
+  document.getElementById(id)?.addEventListener('keydown',e=>{if(e.key==='Enter')doAuth();});
+});
+function doAuth(){
+  const email=document.getElementById('auth-email').value.trim();
+  const pw=document.getElementById('auth-pw').value;
+  const errEl=document.getElementById('auth-err');
+  const loadEl=document.getElementById('auth-loading');
+  errEl.classList.remove('on');
+  if(!email||!pw){errEl.textContent='請填寫電郵和密碼';errEl.classList.add('on');return;}
+  loadEl.style.display='block';
+  document.getElementById('btn-auth').disabled=true;
+  const done=()=>{loadEl.style.display='none';document.getElementById('btn-auth').disabled=false;};
+  const fail=e=>{done();errEl.textContent=authErrMsg(e.code);errEl.classList.add('on');};
+  if(authMode==='reg'){
+    const pw2=document.getElementById('auth-pw2').value;
+    if(pw!==pw2){done();errEl.textContent='兩次密碼不相符';errEl.classList.add('on');return;}
+    fauth.createUserWithEmailAndPassword(email,pw).catch(fail);
+  }else{
+    fauth.signInWithEmailAndPassword(email,pw).catch(fail);
+  }
+}
+function authErrMsg(code){
+  return({'auth/email-already-in-use':'此電郵已被使用','auth/invalid-email':'電郵格式不正確',
+    'auth/weak-password':'密碼太短（最少6個字符）','auth/user-not-found':'找不到此帳號',
+    'auth/wrong-password':'密碼錯誤','auth/invalid-credential':'電郵或密碼錯誤',
+    'auth/too-many-requests':'嘗試次數過多，請稍後再試'}[code]||'登入失敗，請重試');
+}
+
+// Cloud sync (debounced, 2s after last change)
+let syncTimer;
+function syncToCloud(){
+  if(!fauth.currentUser)return;
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(async()=>{
+    const data={};
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k&&k.startsWith('lp_'))data[k.slice(3)]=localStorage.getItem(k);
+    }
+    try{
+      await fdb.collection('users').doc(fauth.currentUser.uid).set({data,ts:Date.now()});
+      const el=document.getElementById('sync-status');
+      if(el)el.textContent='✅ 已同步 '+new Date().toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'});
+    }catch(e){console.warn('sync err',e);}
+  },2000);
+}
+async function loadFromCloud(){
+  if(!fauth.currentUser)return;
+  try{
+    const doc=await fdb.collection('users').doc(fauth.currentUser.uid).get();
+    if(doc.exists&&doc.data().data){
+      Object.entries(doc.data().data).forEach(([k,v])=>localStorage.setItem('lp_'+k,v));
+    }
+  }catch(e){console.warn('load err',e);}
+}
+
+// ══════════════════════════════════════
 //  ACCOUNTS
 // ══════════════════════════════════════
 const raw=(k,d)=>{try{return JSON.parse(localStorage.getItem('lp_'+k))??d}catch{return d}};
@@ -857,6 +997,7 @@ function save(){
   DB.set('txs',txs);DB.set('bgts',bgts);DB.set('sav',sav);
   DB.set('glogs',glogs);DB.set('hlogs',hlogs);DB.set('notes',notes);
   DB.set('acts',activities);DB.set('wallets',wallets);
+  syncToCloud();
 }
 loadData();
 
@@ -1844,11 +1985,38 @@ function delAct(id){activities=activities.filter(a=>a.id!==id);save();rdHealth()
 // ══════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════
-applyTheme(cfg.theme||'#6C63FF');
-initCal();initFin();
-rdDash();updateAccHdr();
-
 if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// Logout + manual sync buttons
+document.getElementById('btn-logout').addEventListener('click',()=>{
+  if(!confirm('確認登出？登出後需重新登入才能查看資料。'))return;
+  fauth.signOut().then(()=>{snk('👋 已登出');});
+});
+document.getElementById('btn-sync-now').addEventListener('click',async()=>{
+  save();snk('☁️ 正在同步...');
+});
+
+// Auth state → init app
+let appInited=false;
+fauth.onAuthStateChanged(async user=>{
+  if(user){
+    document.getElementById('auth-ov').style.display='none';
+    const emailEl=document.getElementById('user-email-lbl');
+    if(emailEl)emailEl.textContent=user.email;
+    await loadFromCloud();
+    loadData();
+    if(!appInited){
+      appInited=true;
+      applyTheme(cfg.theme||'#6C63FF');
+      initCal();initFin();
+    } else {
+      applyTheme(cfg.theme||'#6C63FF');
+    }
+    rdDash();updateAccHdr();
+  } else {
+    document.getElementById('auth-ov').style.display='flex';
+  }
+});
 </script>
 </body>
 </html>
