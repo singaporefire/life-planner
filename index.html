@@ -1435,7 +1435,7 @@ function syncToCloud(){
   },2000);
 }
 
-async function loadFromCloud(){
+async function loadFromCloud(force=false){
   if(!fauth.currentUser)return;
   const uid=fauth.currentUser.uid;
   const _timeout=ms=>new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms));
@@ -1450,7 +1450,8 @@ async function loadFromCloud(){
   if(!doc||!doc.exists||!doc.data()?.data)return;
   const cloudTs =doc.data().ts||0;
   const localMod=_localMod();
-  if(cloudTs>=localMod){
+  // Apply cloud data if: cloud is newer, OR force=true (manual pull from another device)
+  if(force||cloudTs>=localMod){
     Object.entries(doc.data().data).forEach(([k,v])=>localStorage.setItem('lp_'+k,v));
     localStorage.setItem('lp__lm',cloudTs.toString());
   }
@@ -1568,6 +1569,11 @@ function runMigrations(){
 // ══════════════════════════════════════
 let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs,txCatsE,txCatsI,goalCats;
 function loadData(){
+  // Re-read account state — loadFromCloud() may have updated lp_cur_acc / lp_accs in localStorage
+  accounts = raw('accs', [{id:'default',name:'我的帳戶',emoji:'👤'}]);
+  aid      = raw('cur_acc', 'default');
+  if(!accounts.find(a=>a.id===aid)){aid='default';setRaw('cur_acc','default');}
+
   // Run schema migrations first (safe no-op if already up-to-date)
   runMigrations();
 
@@ -3723,7 +3729,17 @@ document.getElementById('btn-logout-cancel').addEventListener('click',()=>{
   closeM('mo-logout');
 });
 document.getElementById('btn-sync-now').addEventListener('click',async()=>{
-  save();snk('☁️ 正在同步...');
+  if(!fauth.currentUser){snk('⚠️ 請先登入才能同步');return;}
+  const el=document.getElementById('sync-status');
+  if(el)el.textContent='☁️ 正在從雲端更新…';
+  snk('☁️ 正在從雲端更新…');
+  // force=true: always apply server data (lets users pull changes from another device)
+  await loadFromCloud(true);
+  loadData();
+  rdDash();updateAccHdr();
+  // also upload the freshly-merged local state
+  save();
+  snk('✅ 已從雲端更新！');
 });
 
 // Auth state → init app
