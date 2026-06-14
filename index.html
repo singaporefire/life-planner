@@ -3640,31 +3640,41 @@ document.getElementById('btn-sync-now').addEventListener('click',async()=>{
 // Auth state → init app
 let appInited=false;
 // ── Handle Google redirect result (mobile / PWA flow) ──
-(function(){
-  const loadEl=document.getElementById('auth-loading');
-  if(sessionStorage.getItem('lp_gr')){
-    // Page just came back from Google OAuth redirect — show spinner
-    sessionStorage.removeItem('lp_gr');
-    if(loadEl)loadEl.style.display='block';
-  }
-  fauth.getRedirectResult().then(result=>{
-    if(loadEl)loadEl.style.display='none';
-    // onAuthStateChanged fires automatically when result.user is set
+// Read & immediately clear the flag so it only applies once
+const _pendingGoogle=sessionStorage.getItem('lp_gr');
+if(_pendingGoogle) sessionStorage.removeItem('lp_gr');
+const _authLoadEl=document.getElementById('auth-loading');
+
+if(_pendingGoogle){
+  // Page just returned from Google OAuth — show spinner, wait for result
+  if(_authLoadEl)_authLoadEl.style.display='block';
+  fauth.getRedirectResult().then(r=>{
+    if(_authLoadEl)_authLoadEl.style.display='none';
+    if(!r?.user&&!fauth.currentUser){
+      // Redirect finished but no user (e.g. user cancelled) → show login
+      document.getElementById('auth-ov').style.display='flex';
+    }
+    // If r.user exists, onAuthStateChanged fires with user and handles the rest
   }).catch(e=>{
-    if(loadEl)loadEl.style.display='none';
-    if(e&&e.code){
+    if(_authLoadEl)_authLoadEl.style.display='none';
+    if(!fauth.currentUser) document.getElementById('auth-ov').style.display='flex';
+    if(e?.code){
       const errEl=document.getElementById('auth-err');
       if(errEl){errEl.textContent=authErrMsg(e.code);errEl.classList.add('on');}
     }
   });
-})();
+} else {
+  // Normal page load — still call getRedirectResult to clear any stale state
+  fauth.getRedirectResult().catch(()=>{});
+}
 
 fauth.onAuthStateChanged(async user=>{
   if(user){
     document.getElementById('auth-ov').style.display='none';
+    if(_authLoadEl)_authLoadEl.style.display='none';
     const emailEl=document.getElementById('user-email-lbl');
-    if(emailEl)emailEl.textContent=user.email;
-    await loadFromCloud();
+    if(emailEl)emailEl.textContent=user.email||'';
+    try{ await loadFromCloud(); }catch(e){ console.warn('cloud load err',e); }
     loadData();
     if(!appInited){
       appInited=true;
@@ -3676,7 +3686,11 @@ fauth.onAuthStateChanged(async user=>{
     }
     rdDash();updateAccHdr();
   } else {
-    document.getElementById('auth-ov').style.display='flex';
+    // Only show login screen when NOT waiting for Google redirect to complete
+    if(!_pendingGoogle){
+      document.getElementById('auth-ov').style.display='flex';
+    }
+    // If _pendingGoogle is true: keep showing spinner — getRedirectResult above will resolve
   }
 });
 </script>
