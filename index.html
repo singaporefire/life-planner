@@ -460,14 +460,9 @@ canvas{max-width:100%;display:block}
     <h1>打卡 · 追蹤 · 成長</h1>
   </div>
   <div class="card" style="margin-top:-8px">
-    <div class="goal-cat-bar" id="goal-cat-bar">
-      <span class="gcpill on" data-gc="all">全部</span>
-      <span class="gcpill" data-gc="health">💪 健康</span>
-      <span class="gcpill" data-gc="learn">📚 學習</span>
-      <span class="gcpill" data-gc="work">💼 工作</span>
-      <span class="gcpill" data-gc="finance">💰 財務</span>
-      <span class="gcpill" data-gc="life">🏠 生活</span>
-      <span class="gcpill" data-gc="other">📌 其他</span>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+      <div class="goal-cat-bar" id="goal-cat-bar" style="flex:1;overflow-x:auto;margin-bottom:0"></div>
+      <button class="btn bg bs" id="btn-goal-cats" style="flex-shrink:0;font-size:12px;white-space:nowrap">⚙️ 管理</button>
     </div>
     <div id="goals-list"></div>
   </div>
@@ -855,14 +850,7 @@ canvas{max-width:100%;display:block}
       </div>
     </div>
     <div class="fg"><label class="fl">分類標籤</label>
-      <div class="tags" id="goal-cat-tags">
-        <span class="tag sel" data-gc="health">💪 健康</span>
-        <span class="tag" data-gc="learn">📚 學習</span>
-        <span class="tag" data-gc="work">💼 工作</span>
-        <span class="tag" data-gc="finance">💰 財務</span>
-        <span class="tag" data-gc="life">🏠 生活</span>
-        <span class="tag" data-gc="other">📌 其他</span>
-      </div>
+      <div class="tags" id="goal-cat-tags" style="flex-wrap:wrap"></div>
     </div>
     <div class="fg"><label class="fl">重複週期</label>
       <div class="tags" id="goal-rep-tabs">
@@ -1269,6 +1257,37 @@ canvas{max-width:100%;display:block}
   </div>
 </div>
 
+<!-- Goal Category Management Modal -->
+<div class="mo" id="mo-goal-cats">
+  <div class="mb">
+    <div class="mt">🗂️ 目標分類管理<button class="mc" data-close="mo-goal-cats">✕</button></div>
+    <div id="goalcat-list" style="max-height:230px;overflow-y:auto;margin-bottom:10px"></div>
+    <div class="dvd"></div>
+    <label class="fl" style="margin-top:10px">新增自定義分類</label>
+    <div style="margin-top:6px;margin-bottom:8px">
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:5px">選擇圖示</div>
+      <div class="tags" id="goalcat-em-pick" style="flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;gap:4px">
+        <span class="tag tsm sel" data-gcem="📌">📌</span>
+        <span class="tag tsm" data-gcem="💪">💪</span><span class="tag tsm" data-gcem="📚">📚</span>
+        <span class="tag tsm" data-gcem="💼">💼</span><span class="tag tsm" data-gcem="💰">💰</span>
+        <span class="tag tsm" data-gcem="🏠">🏠</span><span class="tag tsm" data-gcem="🎯">🎯</span>
+        <span class="tag tsm" data-gcem="🌟">🌟</span><span class="tag tsm" data-gcem="🏃">🏃</span>
+        <span class="tag tsm" data-gcem="🧘">🧘</span><span class="tag tsm" data-gcem="✍️">✍️</span>
+        <span class="tag tsm" data-gcem="🎵">🎵</span><span class="tag tsm" data-gcem="🍎">🍎</span>
+        <span class="tag tsm" data-gcem="🌿">🌿</span><span class="tag tsm" data-gcem="✈️">✈️</span>
+        <span class="tag tsm" data-gcem="🎨">🎨</span><span class="tag tsm" data-gcem="🤝">🤝</span>
+        <span class="tag tsm" data-gcem="⚽">⚽</span><span class="tag tsm" data-gcem="💡">💡</span>
+        <span class="tag tsm" data-gcem="🔬">🔬</span><span class="tag tsm" data-gcem="🏋️">🏋️</span>
+        <span class="tag tsm" data-gcem="👨‍👩‍👧">👨‍👩‍👧</span><span class="tag tsm" data-gcem="❤️">❤️</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="new-goalcat-name" class="fc" placeholder="分類名稱（如：生活、親子）" style="flex:1">
+      <button class="btn bp bs" id="btn-add-goalcat">新增</button>
+    </div>
+  </div>
+</div>
+
 <div class="snk" id="snk"></div>
 
 <script>
@@ -1385,9 +1404,21 @@ const today=()=>new Date().toISOString().slice(0,10);
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 // ══════════════════════════════════════
+//  DEFAULT CONSTANTS (defined before loadData)
+// ══════════════════════════════════════
+const DEFAULT_GOAL_CATS=[
+  {id:'health',name:'健康',em:'💪',builtIn:true},
+  {id:'learn', name:'學習',em:'📚',builtIn:true},
+  {id:'work',  name:'工作',em:'💼',builtIn:true},
+  {id:'finance',name:'財務',em:'💰',builtIn:true},
+  {id:'life',  name:'生活',em:'🏠',builtIn:true},
+  {id:'other', name:'其他',em:'📌',builtIn:true}
+];
+
+// ══════════════════════════════════════
 //  DATA
 // ══════════════════════════════════════
-let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs,txCatsE,txCatsI;
+let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs,txCatsE,txCatsI,goalCats;
 function loadData(){
   cfg        =DB.get('cfg',{lang:'zh',cur:'HK$',theme:'#6C63FF'});
   evts       =DB.get('evts',[]);
@@ -1432,6 +1463,9 @@ function loadData(){
     {id:'bminton',name:'羽毛球',catId:'ball'},{id:'pingpong',name:'乒乓球',catId:'ball'}
   ]);
   recurTxs   =DB.get('recurTxs',[]);
+  goalCats   =DB.get('goalCats',DEFAULT_GOAL_CATS);
+  // Migrate: ensure built-in goal cats are always present
+  DEFAULT_GOAL_CATS.forEach(d=>{if(!goalCats.find(c=>c.id===d.id))goalCats.push(d);});
 }
 function save(){
   DB.set('cfg',cfg);DB.set('evts',evts);DB.set('cds',cds);DB.set('goals',goals);
@@ -1442,6 +1476,7 @@ function save(){
   DB.set('flogs',flogs);DB.set('nutGoal',nutGoal);
   DB.set('txCatsE',txCatsE);DB.set('txCatsI',txCatsI);
   DB.set('exLib',exLib);DB.set('recurTxs',recurTxs);
+  DB.set('goalCats',goalCats);
   syncToCloud();
 }
 loadData();
@@ -1823,22 +1858,33 @@ document.getElementById('g-dow').querySelectorAll('.dp').forEach(p=>{
 document.getElementById('goal-icons').querySelectorAll('.tag').forEach(t=>{
   t.addEventListener('click',()=>{document.getElementById('goal-icons').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selGIc=t.dataset.ic;});
 });
-// Goal category filter pills
+// Goal category filter pills (dynamic)
 let curGoalCat='all';
-document.getElementById('goal-cat-bar').querySelectorAll('.gcpill').forEach(p=>{
-  p.addEventListener('click',()=>{
-    document.getElementById('goal-cat-bar').querySelectorAll('.gcpill').forEach(x=>x.classList.remove('on'));
-    p.classList.add('on');curGoalCat=p.dataset.gc;rdGoals();
+function rdGoalCatBar(){
+  const bar=document.getElementById('goal-cat-bar');
+  bar.innerHTML=`<span class="gcpill${curGoalCat==='all'?' on':''}" data-gc="all">全部</span>`+
+    goalCats.map(c=>`<span class="gcpill${curGoalCat===c.id?' on':''}" data-gc="${c.id}">${c.em} ${c.name}</span>`).join('');
+  bar.querySelectorAll('.gcpill').forEach(p=>{
+    p.addEventListener('click',()=>{
+      bar.querySelectorAll('.gcpill').forEach(x=>x.classList.remove('on'));
+      p.classList.add('on');curGoalCat=p.dataset.gc;rdGoals();
+    });
   });
-});
-// Goal modal category tags
+}
+// Goal modal category tags (dynamic)
 let selGoalCatTag='health';
-document.getElementById('goal-cat-tags').querySelectorAll('.tag').forEach(t=>{
-  t.addEventListener('click',()=>{
-    document.getElementById('goal-cat-tags').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
-    t.classList.add('sel');selGoalCatTag=t.dataset.gc;
+function rdGoalCatTags(selectedId){
+  selectedId=selectedId||goalCats[0]?.id||'other';
+  selGoalCatTag=selectedId;
+  const el=document.getElementById('goal-cat-tags');
+  el.innerHTML=goalCats.map(c=>`<span class="tag${c.id===selectedId?' sel':''}" data-gc="${c.id}">${c.em} ${c.name}</span>`).join('');
+  el.querySelectorAll('.tag').forEach(t=>{
+    t.addEventListener('click',()=>{
+      el.querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+      t.classList.add('sel');selGoalCatTag=t.dataset.gc;
+    });
   });
-});
+}
 document.getElementById('btn-add-goal').addEventListener('click',()=>{
   document.getElementById('goal-id').value='';document.getElementById('goal-name').value='';
   ['g-mday','g-ydate','g-pstart','g-pend','g-tval','g-ts','g-te'].forEach(id=>document.getElementById(id).value='');
@@ -1846,14 +1892,10 @@ document.getElementById('btn-add-goal').addEventListener('click',()=>{
   document.getElementById('goal-icons').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
   document.getElementById('goal-rep-tabs').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
   document.getElementById('g-dow').querySelectorAll('.dp').forEach(p=>p.classList.remove('sel'));
-  document.getElementById('goal-cat-tags').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
-  selGIc='🎯';selRt='daily';selDow=[];selGoalCatTag='health';updGoalRepUI();openM('mo-goal');
+  selGIc='🎯';selRt='daily';selDow=[];
+  rdGoalCatTags(goalCats[0]?.id||'other');
+  updGoalRepUI();openM('mo-goal');
 });
-const GOAL_CATS_DEF=[
-  {id:'health',name:'健康',em:'💪'},{id:'learn',name:'學習',em:'📚'},
-  {id:'work',name:'工作',em:'💼'},{id:'finance',name:'財務',em:'💰'},
-  {id:'life',name:'生活',em:'🏠'},{id:'other',name:'其他',em:'📌'}
-];
 function renderGoalItem(g,td){
   const logs=glogs[g.id]||[],done=logs.includes(td),due=isDue(g,td);
   const streak=calcStreak(logs);
@@ -1885,21 +1927,25 @@ function renderGoalItem(g,td){
     </div>${prog}</div>`;
 }
 function rdGoals(){
+  rdGoalCatBar();
   const td=today();
   let filtered=curGoalCat==='all'?goals:goals.filter(g=>(g.catId||'other')===curGoalCat);
   if(!filtered.length){
     document.getElementById('goals-list').innerHTML=`<div class="empty"><span class="ei">🎯</span>${curGoalCat==='all'?'未有目標，按＋新增':'此分類無目標'}</div>`;
-    return;
+    return; // rdGoalCatBar already called above
   }
   if(curGoalCat==='all'){
-    const byCat={};GOAL_CATS_DEF.forEach(c=>{byCat[c.id]=[];});
+    const byCat={};goalCats.forEach(c=>{byCat[c.id]=[];});
     filtered.forEach(g=>{const cid=g.catId||'other';if(!byCat[cid])byCat[cid]=[];byCat[cid].push(g);});
     let html='';
-    GOAL_CATS_DEF.forEach(cat=>{
+    goalCats.forEach(cat=>{
       if(!byCat[cat.id]?.length)return;
       html+=`<div class="goal-cat-hdr">${cat.em} ${cat.name}</div>`;
       html+=byCat[cat.id].map(g=>renderGoalItem(g,td)).join('');
     });
+    // goals under unknown/deleted categories
+    const knownIds=goalCats.map(c=>c.id);
+    filtered.filter(g=>!knownIds.includes(g.catId||'other')).forEach(g=>{html+=renderGoalItem(g,td);});
     document.getElementById('goals-list').innerHTML=html||`<div class="empty"><span class="ei">🎯</span>未有目標，按＋新增</div>`;
   } else {
     document.getElementById('goals-list').innerHTML=filtered.map(g=>renderGoalItem(g,td)).join('');
@@ -1920,11 +1966,10 @@ function openGoalEdit(id){
   document.getElementById('goal-id').value=id;
   document.getElementById('goal-name').value=g.name||'';
   selGIc=g.ic||'🎯';selRt=g.rt||'daily';selDow=[...(g.dow||[])];
-  selGoalCatTag=g.catId||'other';
   document.getElementById('goal-icons').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.ic===selGIc));
   document.getElementById('goal-rep-tabs').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.rt===selRt));
   document.getElementById('g-dow').querySelectorAll('.dp').forEach(p=>p.classList.toggle('sel',selDow.includes(parseInt(p.dataset.d))));
-  document.getElementById('goal-cat-tags').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.gc===selGoalCatTag));
+  rdGoalCatTags(g.catId||goalCats[0]?.id||'other');
   document.getElementById('g-mday').value=g.mday||'';
   document.getElementById('g-ydate').value=g.ydate||'';
   document.getElementById('g-pstart').value=g.ps||'';
@@ -1948,6 +1993,41 @@ document.getElementById('btn-save-goal').addEventListener('click',()=>{
     ts:document.getElementById('g-ts').value||null,te:document.getElementById('g-te').value||null});
   save();closeM('mo-goal');rdGoals();rdDash();snk('✅ 已儲存');
 });
+
+// ══════════════════════════════════════
+//  GOAL CATEGORY MANAGEMENT
+// ══════════════════════════════════════
+let newGoalCatEm='📌';
+document.getElementById('btn-goal-cats').addEventListener('click',()=>{rdGoalCatMgr();openM('mo-goal-cats');});
+document.getElementById('goalcat-em-pick').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('goalcat-em-pick').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.add('sel');newGoalCatEm=t.dataset.gcem;
+  });
+});
+function rdGoalCatMgr(){
+  document.getElementById('goalcat-list').innerHTML=goalCats.map(c=>`
+    <div class="hli" style="padding:9px 0;align-items:center">
+      <div class="hlb" style="font-size:18px;background:var(--PL);flex-shrink:0;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center">${c.em}</div>
+      <div class="hlinfo" style="flex:1"><div class="hlval">${esc(c.name)}</div>${c.builtIn?'<div style="font-size:10px;color:var(--tx2)">預設分類</div>':''}</div>
+      ${c.builtIn?'':'<button class="btn bd bs" onclick="delGoalCat(\''+c.id+'\')" style="flex-shrink:0">🗑️</button>'}
+    </div>`).join('');
+}
+document.getElementById('btn-add-goalcat').addEventListener('click',()=>{
+  const name=document.getElementById('new-goalcat-name').value.trim();
+  if(!name){snk('⚠️ 請填寫分類名稱');return;}
+  goalCats.push({id:'gc_'+uid(),em:newGoalCatEm,name});
+  document.getElementById('new-goalcat-name').value='';
+  document.getElementById('goalcat-em-pick').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  newGoalCatEm='📌';
+  save();rdGoalCatMgr();rdGoalCatBar();snk('✅ 分類已新增');
+});
+function delGoalCat(id){
+  goalCats=goalCats.filter(c=>c.id!==id);
+  // goals in deleted category fall back to 'other'
+  goals.forEach(g=>{if(g.catId===id)g.catId='other';});
+  save();rdGoalCatMgr();rdGoalCatBar();rdGoals();snk('🗑️ 已刪除');
+}
 
 // ══════════════════════════════════════
 //  HEALTH
@@ -2387,7 +2467,7 @@ document.querySelectorAll('#theme-sw .sw2').forEach(s=>{
 });
 document.getElementById('btn-exp').addEventListener('click',()=>{
   const a=document.createElement('a');
-  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({evts,cds,goals,txs,bgts,cfg,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs,txCatsE,txCatsI},null,2));
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({evts,cds,goals,txs,bgts,cfg,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs,txCatsE,txCatsI,goalCats},null,2));
   a.download=`lp-backup-${today()}.json`;a.click();snk('📤 備份已下載');
 });
 document.getElementById('imp-file').addEventListener('change',function(){
@@ -2404,13 +2484,14 @@ document.getElementById('imp-file').addEventListener('change',function(){
       if(d.flogs)flogs=d.flogs;if(d.nutGoal)nutGoal=d.nutGoal;
       if(d.exLib)exLib=d.exLib;if(d.recurTxs)recurTxs=d.recurTxs;
       if(d.txCatsE)txCatsE=d.txCatsE;if(d.txCatsI)txCatsI=d.txCatsI;
+      if(d.goalCats)goalCats=d.goalCats;
       save();applyTheme(cfg.theme);rerender();snk('✅ 匯入成功');
     }catch{snk('❌ 格式錯誤');}
   };r.readAsText(f);this.value='';
 });
 document.getElementById('btn-clr').addEventListener('click',()=>{
   if(!confirm('確定清除此帳戶所有資料？'))return;
-  evts=[];cds=[];goals=[];txs=[];bgts={};glogs={};hlogs={};notes=[];activities=[];sav=0;reminders=[];rlogs={};flogs={};nutGoal={goalType:'maintain',targetWeight:null,height:null,age:null,gender:'M',activityLevel:1.55,calOverride:null};recurTxs=[];txCatsE=[...DEFAULT_CE];txCatsI=[...DEFAULT_CI];
+  evts=[];cds=[];goals=[];txs=[];bgts={};glogs={};hlogs={};notes=[];activities=[];sav=0;reminders=[];rlogs={};flogs={};nutGoal={goalType:'maintain',targetWeight:null,height:null,age:null,gender:'M',activityLevel:1.55,calOverride:null};recurTxs=[];txCatsE=[...DEFAULT_CE];txCatsI=[...DEFAULT_CI];goalCats=[...DEFAULT_GOAL_CATS];
   wallets=[{id:'cash',name:'現金',em:'💵',balance:0},{id:'credit',name:'信用卡',em:'💳',balance:0},{id:'octopus',name:'八達通',em:'🎫',balance:0}];
   save();rerender();snk('🗑️ 已清除');
 });
