@@ -1333,8 +1333,8 @@ firebase.initializeApp({
 });
 const fauth=firebase.auth();
 const fdb=firebase.firestore();
-// Enable offline persistence so data loads even without network
-fdb.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+// Enable offline persistence (single-tab mode avoids deprecation warning)
+fdb.enablePersistence().catch(()=>{});
 
 let authMode='login';
 function switchAuth(m){
@@ -1438,15 +1438,16 @@ function syncToCloud(){
 async function loadFromCloud(){
   if(!fauth.currentUser)return;
   const uid=fauth.currentUser.uid;
+  const _timeout=ms=>new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms));
   let doc=null;
-  // 1. Try server first (fresh data)
-  try{ doc=await fdb.collection('users').doc(uid).get(); }
+  // 1. Try server with 4s timeout (prevents hanging on slow/no network)
+  try{ doc=await Promise.race([fdb.collection('users').doc(uid).get(), _timeout(4000)]); }
   catch(_){
-    // 2. Server unreachable → try Firestore local cache (works offline after first sync)
+    // 2. Server failed/timed out → try Firestore local cache
     try{ doc=await fdb.collection('users').doc(uid).get({source:'cache'}); }
     catch(__){ return; } // no cache yet — use localStorage as-is
   }
-  if(!doc||!doc.exists||!doc.data().data)return;
+  if(!doc||!doc.exists||!doc.data()?.data)return;
   const cloudTs =doc.data().ts||0;
   const localMod=_localMod();
   if(cloudTs>=localMod){
