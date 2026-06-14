@@ -263,6 +263,43 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
 .snk.on{opacity:1}
 canvas{max-width:100%;display:block}
 
+/* EXERCISE CATEGORY TABS */
+.act-cat-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;margin-bottom:10px}
+.act-cat-tabs::-webkit-scrollbar{display:none}
+.act-cat-tab{flex:0 0 auto;padding:5px 14px;border-radius:18px;font-size:12px;font-weight:600;cursor:pointer;
+  border:1.5px solid var(--bdr);background:var(--sur2);color:var(--tx2);transition:all .15s;white-space:nowrap}
+.act-cat-tab.on{border-color:var(--P);background:var(--PL);color:var(--P)}
+.ex-card{padding:11px;background:var(--sur2);border-radius:11px;margin-bottom:8px;cursor:pointer;transition:transform .1s;position:relative}
+.ex-card:active{transform:scale(.97)}
+.ex-card-top{display:flex;align-items:center;gap:9px}
+.ex-card-name{font-size:13px;font-weight:700;flex:1;color:var(--tx)}
+.pr-badge{padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;background:var(--P);color:#fff;flex-shrink:0}
+.ex-card-meta{font-size:11px;color:var(--tx2);margin-top:4px}
+.ex-hist-ov{position:fixed;inset:0;background:var(--sur);z-index:300;display:none;flex-direction:column;max-width:480px;left:50%;transform:translateX(-50%)}
+.ex-hist-ov.on{display:flex}
+.ex-hist-hdr{padding:50px 18px 14px;background:linear-gradient(135deg,var(--P),#9b59b6);color:#fff;flex-shrink:0}
+.ex-hist-body{flex:1;overflow-y:auto;padding:14px 14px 82px}
+.ex-sess-card{background:var(--sur);border-radius:12px;padding:13px;margin-bottom:10px;box-shadow:var(--shd)}
+.ex-sess-date{font-size:11px;color:var(--tx2);margin-bottom:6px}
+/* GOAL CATEGORIES */
+.goal-cat-bar{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none}
+.goal-cat-bar::-webkit-scrollbar{display:none}
+.gcpill{flex:0 0 auto;padding:4px 12px;border-radius:16px;font-size:12px;font-weight:600;cursor:pointer;
+  border:1.5px solid var(--bdr);background:var(--sur2);color:var(--tx2);transition:all .15s;white-space:nowrap}
+.gcpill.on{border-color:var(--P);background:var(--PL);color:var(--P)}
+.goal-cat-hdr{font-size:10px;font-weight:700;color:var(--tx2);letter-spacing:.7px;text-transform:uppercase;
+  padding:10px 0 4px;border-top:1px solid var(--bdr);margin-top:4px}
+.goal-cat-hdr:first-child{border-top:none;margin-top:0;padding-top:0}
+/* RECURRING TX */
+.recur-item{padding:11px 0;border-bottom:1px solid var(--bdr)}
+.recur-item:last-child{border-bottom:none}
+.recur-top{display:flex;align-items:center;gap:9px;margin-bottom:5px}
+.recur-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.recur-name{font-size:13px;font-weight:600;flex:1}
+.recur-meta{font-size:11px;color:var(--tx2);margin-top:1px}
+.recur-pay-btn{padding:5px 11px;border-radius:14px;border:none;background:var(--P);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fn);white-space:nowrap;transition:background .15s;flex-shrink:0}
+.recur-pay-btn.paid{background:var(--ok)}
+
 /* AUTH OVERLAY */
 #auth-ov{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#6C63FF,#9b59b6);
   display:flex;align-items:center;justify-content:center;padding:24px}
@@ -422,7 +459,18 @@ canvas{max-width:100%;display:block}
     <div class="sub">目標管理 · Goals</div>
     <h1>打卡 · 追蹤 · 成長</h1>
   </div>
-  <div class="card"><div id="goals-list"></div></div>
+  <div class="card" style="margin-top:-8px">
+    <div class="goal-cat-bar" id="goal-cat-bar">
+      <span class="gcpill on" data-gc="all">全部</span>
+      <span class="gcpill" data-gc="health">💪 健康</span>
+      <span class="gcpill" data-gc="learn">📚 學習</span>
+      <span class="gcpill" data-gc="work">💼 工作</span>
+      <span class="gcpill" data-gc="finance">💰 財務</span>
+      <span class="gcpill" data-gc="life">🏠 生活</span>
+      <span class="gcpill" data-gc="other">📌 其他</span>
+    </div>
+    <div id="goals-list"></div>
+  </div>
   <button class="fab" id="btn-add-goal">＋</button>
 </div>
 
@@ -522,10 +570,19 @@ canvas{max-width:100%;display:block}
   </div>
   <div class="card">
     <div class="ct" style="display:flex;justify-content:space-between;align-items:center">
-      <span>活動 / 訓練記錄</span>
-      <button class="btn bp bs" onclick="openActModal()">＋ 新增</button>
+      <span>💪 活動 / 訓練記錄</span>
+      <div style="display:flex;gap:5px">
+        <button class="btn bg bs" id="act-view-btn" onclick="toggleActView()">📊 按項目</button>
+        <button class="btn bp bs" onclick="openActModal()">＋ 新增</button>
+      </div>
     </div>
-    <div id="act-list"></div>
+    <div id="act-cat-view" style="display:none">
+      <div class="act-cat-tabs" id="act-cat-tabs"></div>
+      <div id="act-ex-list"></div>
+    </div>
+    <div id="act-hist-view">
+      <div id="act-list"></div>
+    </div>
   </div>
   <div class="card">
     <div class="ct">健康記錄歷史</div>
@@ -597,6 +654,13 @@ canvas{max-width:100%;display:block}
       <button class="btn bg bs" id="btn-wallets">管理錢包</button>
     </div>
     <div id="wallet-overview"></div>
+  </div>
+  <div class="card">
+    <div class="ct" style="display:flex;justify-content:space-between;align-items:center">
+      <span>🔄 定期 / 分期</span>
+      <button class="btn bp bs" onclick="openRecurModal()">＋ 新增</button>
+    </div>
+    <div id="recur-list"></div>
   </div>
   <div class="card"><div class="ct">預算概覽</div><div id="bgt-bars"></div></div>
   <div class="card"><div class="ct">分類統計</div><canvas id="pie" height="190"></canvas></div>
@@ -694,7 +758,7 @@ canvas{max-width:100%;display:block}
       <button class="btn bg bs" onclick="checkTodayNotifications();snk('已發送通知')">發送通知</button>
     </div>
   </div>
-  <div style="text-align:center;color:var(--tx2);font-size:11px;padding:18px">生活規劃家 v4.0 · 提醒系統 · Cloud Sync ☁️</div>
+  <div style="text-align:center;color:var(--tx2);font-size:11px;padding:18px">生活規劃家 v6.0 · 運動分類 · 定期支出 · Cloud Sync ☁️</div>
 </div>
 
 <!-- ══ NAV ══ -->
@@ -710,6 +774,21 @@ canvas{max-width:100%;display:block}
   <button class="nb" data-pg="set"><span class="i">⚙️</span>設定</button>
 </nav>
 </div><!-- /app -->
+
+<!-- Exercise History Overlay -->
+<div class="ex-hist-ov" id="ex-hist-ov">
+  <div class="ex-hist-hdr">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-size:11px;opacity:.8" id="ex-hist-cat-lbl"></div>
+        <div style="font-size:20px;font-weight:700;margin-top:4px" id="ex-hist-name"></div>
+      </div>
+      <button class="btn bg bs" onclick="closeExHist()" style="flex-shrink:0;margin-left:10px">✕ 關閉</button>
+    </div>
+    <div id="ex-hist-pr" style="margin-top:10px;font-size:13px;opacity:.9"></div>
+  </div>
+  <div class="ex-hist-body" id="ex-hist-body"></div>
+</div>
 
 <!-- ══ MODALS ══ -->
 <!-- Event -->
@@ -772,6 +851,16 @@ canvas{max-width:100%;display:block}
         <span class="tag" data-ic="💧">💧</span><span class="tag" data-ic="🥗">🥗</span>
         <span class="tag" data-ic="🎵">🎵</span><span class="tag" data-ic="✍️">✍️</span>
         <span class="tag" data-ic="🧘">🧘</span><span class="tag" data-ic="💤">💤</span>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">分類標籤</label>
+      <div class="tags" id="goal-cat-tags">
+        <span class="tag sel" data-gc="health">💪 健康</span>
+        <span class="tag" data-gc="learn">📚 學習</span>
+        <span class="tag" data-gc="work">💼 工作</span>
+        <span class="tag" data-gc="finance">💰 財務</span>
+        <span class="tag" data-gc="life">🏠 生活</span>
+        <span class="tag" data-gc="other">📌 其他</span>
       </div>
     </div>
     <div class="fg"><label class="fl">重複週期</label>
@@ -880,6 +969,11 @@ canvas{max-width:100%;display:block}
         <span class="tag" data-at="其他">📌 其他</span>
       </div>
     </div>
+    <!-- Exercise quick-pick -->
+    <div id="act-ex-quick" style="display:none;margin-bottom:8px">
+      <label class="fl">常用動作（點擊快速新增）</label>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px" id="act-ex-quick-tags"></div>
+    </div>
     <!-- Weight Training sets -->
     <div id="act-weights-section">
       <label class="fl">訓練動作（可多行）</label>
@@ -921,6 +1015,37 @@ canvas{max-width:100%;display:block}
       </div>
     </div>
     <button class="btn bp bb" id="btn-save-act">儲存活動</button>
+  </div>
+</div>
+
+<!-- Recurring Transaction Modal -->
+<div class="mo" id="mo-recur">
+  <div class="mb">
+    <div class="mt"><span id="mo-recur-title">新增定期支出/收入</span><button class="mc" data-close="mo-recur">✕</button></div>
+    <input type="hidden" id="recur-id">
+    <div class="fg"><label class="fl">名稱</label><input type="text" id="recur-name-inp" class="fc" placeholder="e.g. 電視機分期付款、月租"></div>
+    <div class="fg"><label class="fl">類型</label>
+      <div class="tags" id="recur-type-tags">
+        <span class="tag sel" data-rtp="expense">💸 支出</span>
+        <span class="tag" data-rtp="income">💰 收入</span>
+      </div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">每期金額</label><input type="number" id="recur-amt" class="fc" placeholder="416.66" step="0.01"></div>
+      <div class="fg"><label class="fl">週期</label>
+        <select id="recur-period" class="fc">
+          <option value="monthly">每月</option>
+          <option value="weekly">每週</option>
+          <option value="yearly">每年</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">開始日期</label><input type="date" id="recur-start" class="fc"></div>
+      <div class="fg"><label class="fl">分期數（留空=永久）</label><input type="number" id="recur-installments" class="fc" placeholder="24"></div>
+    </div>
+    <div class="fg"><label class="fl">備注（選填）</label><input type="text" id="recur-note" class="fc" placeholder="如：電視機 $10000，24期"></div>
+    <button class="btn bp bb" id="btn-save-recur">儲存</button>
   </div>
 </div>
 
@@ -1218,7 +1343,7 @@ const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 // ══════════════════════════════════════
 //  DATA
 // ══════════════════════════════════════
-let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal;
+let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs;
 function loadData(){
   cfg        =DB.get('cfg',{lang:'zh',cur:'HK$',theme:'#6C63FF'});
   evts       =DB.get('evts',[]);
@@ -1240,6 +1365,24 @@ function loadData(){
   rlogs      =DB.get('rlogs',{});
   flogs      =DB.get('flogs',{});
   nutGoal    =DB.get('nutGoal',{goalType:'maintain',targetWeight:null,height:null,age:null,gender:'M',activityLevel:1.55,calOverride:null});
+  exLib      =DB.get('exLib',[
+    {id:'bp',name:'臥推 Bench Press',catId:'wt'},{id:'row',name:'俯身划船 Bent Row',catId:'wt'},
+    {id:'squat',name:'深蹲 Squat',catId:'wt'},{id:'ohp',name:'肩推 OHP',catId:'wt'},
+    {id:'dl',name:'硬舉 Deadlift',catId:'wt'},{id:'curl',name:'彎舉 Bicep Curl',catId:'wt'},
+    {id:'tri',name:'三頭下壓 Tricep',catId:'wt'},{id:'lat',name:'下拉 Lat Pulldown',catId:'wt'},
+    {id:'fly',name:'夾胸 Chest Fly',catId:'wt'},{id:'lunge',name:'弓步 Lunge',catId:'wt'},
+    {id:'leg_press',name:'腿推 Leg Press',catId:'wt'},{id:'plank',name:'平板支撐 Plank',catId:'wt'},
+    {id:'run5',name:'5km 跑步',catId:'run'},{id:'run10',name:'10km 跑步',catId:'run'},
+    {id:'tread',name:'跑步機',catId:'run'},{id:'interval',name:'間歇跑',catId:'run'},
+    {id:'freestyle',name:'自由泳',catId:'swim'},{id:'breast',name:'蛙泳',catId:'swim'},
+    {id:'backstroke',name:'仰泳',catId:'swim'},{id:'outdoor_bike',name:'戶外單車',catId:'bike'},
+    {id:'indoor_bike',name:'室內單車',catId:'bike'},{id:'yoga_morn',name:'早晨瑜伽',catId:'yoga'},
+    {id:'stretch',name:'伸展放鬆',catId:'yoga'},{id:'hiit20',name:'20分鐘HIIT',catId:'hiit'},
+    {id:'tabata',name:'Tabata',catId:'hiit'},{id:'bball',name:'籃球',catId:'ball'},
+    {id:'soccer',name:'足球',catId:'ball'},{id:'tennis',name:'網球',catId:'ball'},
+    {id:'bminton',name:'羽毛球',catId:'ball'},{id:'pingpong',name:'乒乓球',catId:'ball'}
+  ]);
+  recurTxs   =DB.get('recurTxs',[]);
 }
 function save(){
   DB.set('cfg',cfg);DB.set('evts',evts);DB.set('cds',cds);DB.set('goals',goals);
@@ -1248,6 +1391,7 @@ function save(){
   DB.set('acts',activities);DB.set('wallets',wallets);
   DB.set('reminders',reminders);DB.set('rlogs',rlogs);
   DB.set('flogs',flogs);DB.set('nutGoal',nutGoal);
+  DB.set('exLib',exLib);DB.set('recurTxs',recurTxs);
   syncToCloud();
 }
 loadData();
@@ -1629,6 +1773,22 @@ document.getElementById('g-dow').querySelectorAll('.dp').forEach(p=>{
 document.getElementById('goal-icons').querySelectorAll('.tag').forEach(t=>{
   t.addEventListener('click',()=>{document.getElementById('goal-icons').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selGIc=t.dataset.ic;});
 });
+// Goal category filter pills
+let curGoalCat='all';
+document.getElementById('goal-cat-bar').querySelectorAll('.gcpill').forEach(p=>{
+  p.addEventListener('click',()=>{
+    document.getElementById('goal-cat-bar').querySelectorAll('.gcpill').forEach(x=>x.classList.remove('on'));
+    p.classList.add('on');curGoalCat=p.dataset.gc;rdGoals();
+  });
+});
+// Goal modal category tags
+let selGoalCatTag='health';
+document.getElementById('goal-cat-tags').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('goal-cat-tags').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.add('sel');selGoalCatTag=t.dataset.gc;
+  });
+});
 document.getElementById('btn-add-goal').addEventListener('click',()=>{
   document.getElementById('goal-id').value='';document.getElementById('goal-name').value='';
   ['g-mday','g-ydate','g-pstart','g-pend','g-tval','g-ts','g-te'].forEach(id=>document.getElementById(id).value='');
@@ -1636,40 +1796,64 @@ document.getElementById('btn-add-goal').addEventListener('click',()=>{
   document.getElementById('goal-icons').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
   document.getElementById('goal-rep-tabs').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
   document.getElementById('g-dow').querySelectorAll('.dp').forEach(p=>p.classList.remove('sel'));
-  selGIc='🎯';selRt='daily';selDow=[];updGoalRepUI();openM('mo-goal');
+  document.getElementById('goal-cat-tags').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  selGIc='🎯';selRt='daily';selDow=[];selGoalCatTag='health';updGoalRepUI();openM('mo-goal');
 });
+const GOAL_CATS_DEF=[
+  {id:'health',name:'健康',em:'💪'},{id:'learn',name:'學習',em:'📚'},
+  {id:'work',name:'工作',em:'💼'},{id:'finance',name:'財務',em:'💰'},
+  {id:'life',name:'生活',em:'🏠'},{id:'other',name:'其他',em:'📌'}
+];
+function renderGoalItem(g,td){
+  const logs=glogs[g.id]||[],done=logs.includes(td),due=isDue(g,td);
+  const streak=calcStreak(logs);
+  let prog='';
+  if(g.rt==='target'){
+    const cur=logs.length,max=g.tval||100,pct=Math.min(100,Math.round(cur/max*100));
+    prog=`<div class="pb"><div class="pf" style="width:${pct}%"></div></div>
+      <div class="gmeta">${cur} / ${max} (${pct}%)</div>`;
+  } else {
+    const h35=last35();
+    prog=`<div class="hm">${h35.map(d=>`<div class="hc ${logs.includes(d)?'l3':''}"></div>`).join('')}</div>
+      <div class="gmeta" style="margin-top:5px">🔥 ${streak}天連續 · 共 ${logs.length} 次</div>`;
+  }
+  return `<div class="gi">
+    <div class="gtop">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+        <span style="font-size:21px">${g.ic||'🎯'}</span>
+        <div style="min-width:0">
+          <div class="gname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(g.name)}</div>
+          <div style="font-size:10px;color:var(--tx2)">${repLabel(g)}${g.ts?' ⏰'+g.ts+(g.te?'-'+g.te:''):''}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px">
+        ${g.rt!=='target'?`<span style="font-size:11px;color:var(--warn);font-weight:700">🔥${streak}</span>`:''}
+        ${due?`<button class="ckb ${done?'done':''}" onclick="ckGoal('${g.id}')">${done?'✓':'打卡'}</button>`:'<span style="font-size:10px;color:var(--tx2)">非今日</span>'}
+        <button class="btn bg bs" onclick="openGoalEdit('${g.id}')">✏️</button>
+        <button class="btn bg bs" onclick="delGoal('${g.id}')">🗑️</button>
+      </div>
+    </div>${prog}</div>`;
+}
 function rdGoals(){
   const td=today();
-  document.getElementById('goals-list').innerHTML=goals.length?goals.map(g=>{
-    const logs=glogs[g.id]||[],done=logs.includes(td),due=isDue(g,td);
-    const streak=calcStreak(logs);
-    let prog='';
-    if(g.rt==='target'){
-      const cur=logs.length,max=g.tval||100,pct=Math.min(100,Math.round(cur/max*100));
-      prog=`<div class="pb"><div class="pf" style="width:${pct}%"></div></div>
-        <div class="gmeta">${cur} / ${max} (${pct}%)</div>`;
-    } else {
-      const h35=last35();
-      prog=`<div class="hm">${h35.map(d=>`<div class="hc ${logs.includes(d)?'l3':''}"></div>`).join('')}</div>
-        <div class="gmeta" style="margin-top:5px">🔥 ${streak}天連續 · 共 ${logs.length} 次</div>`;
-    }
-    return `<div class="gi">
-      <div class="gtop">
-        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-          <span style="font-size:21px">${g.ic||'🎯'}</span>
-          <div style="min-width:0">
-            <div class="gname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(g.name)}</div>
-            <div style="font-size:10px;color:var(--tx2)">${repLabel(g)}${g.ts?' ⏰'+g.ts+(g.te?'-'+g.te:''):''}</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px">
-          ${g.rt!=='target'?`<span style="font-size:11px;color:var(--warn);font-weight:700">🔥${streak}</span>`:''}
-          ${due?`<button class="ckb ${done?'done':''}" onclick="ckGoal('${g.id}')">${done?'✓':'打卡'}</button>`:'<span style="font-size:10px;color:var(--tx2)">非今日</span>'}
-          <button class="btn bg bs" onclick="openGoalEdit('${g.id}')">✏️</button>
-          <button class="btn bg bs" onclick="delGoal('${g.id}')">🗑️</button>
-        </div>
-      </div>${prog}</div>`;
-  }).join(''):`<div class="empty"><span class="ei">🎯</span>未有目標，按＋新增</div>`;
+  let filtered=curGoalCat==='all'?goals:goals.filter(g=>(g.catId||'other')===curGoalCat);
+  if(!filtered.length){
+    document.getElementById('goals-list').innerHTML=`<div class="empty"><span class="ei">🎯</span>${curGoalCat==='all'?'未有目標，按＋新增':'此分類無目標'}</div>`;
+    return;
+  }
+  if(curGoalCat==='all'){
+    const byCat={};GOAL_CATS_DEF.forEach(c=>{byCat[c.id]=[];});
+    filtered.forEach(g=>{const cid=g.catId||'other';if(!byCat[cid])byCat[cid]=[];byCat[cid].push(g);});
+    let html='';
+    GOAL_CATS_DEF.forEach(cat=>{
+      if(!byCat[cat.id]?.length)return;
+      html+=`<div class="goal-cat-hdr">${cat.em} ${cat.name}</div>`;
+      html+=byCat[cat.id].map(g=>renderGoalItem(g,td)).join('');
+    });
+    document.getElementById('goals-list').innerHTML=html||`<div class="empty"><span class="ei">🎯</span>未有目標，按＋新增</div>`;
+  } else {
+    document.getElementById('goals-list').innerHTML=filtered.map(g=>renderGoalItem(g,td)).join('');
+  }
 }
 function last35(){const a=[];for(let i=34;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);a.push(d.toISOString().slice(0,10));}return a;}
 function calcStreak(logs){let s=0,d=new Date();while(true){const ds=d.toISOString().slice(0,10);if(logs.includes(ds)){s++;d.setDate(d.getDate()-1);}else break;}return s;}
@@ -1686,9 +1870,11 @@ function openGoalEdit(id){
   document.getElementById('goal-id').value=id;
   document.getElementById('goal-name').value=g.name||'';
   selGIc=g.ic||'🎯';selRt=g.rt||'daily';selDow=[...(g.dow||[])];
+  selGoalCatTag=g.catId||'other';
   document.getElementById('goal-icons').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.ic===selGIc));
   document.getElementById('goal-rep-tabs').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.rt===selRt));
   document.getElementById('g-dow').querySelectorAll('.dp').forEach(p=>p.classList.toggle('sel',selDow.includes(parseInt(p.dataset.d))));
+  document.getElementById('goal-cat-tags').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.gc===selGoalCatTag));
   document.getElementById('g-mday').value=g.mday||'';
   document.getElementById('g-ydate').value=g.ydate||'';
   document.getElementById('g-pstart').value=g.ps||'';
@@ -1704,7 +1890,7 @@ document.getElementById('btn-save-goal').addEventListener('click',()=>{
   if(!name){snk('⚠️ 請填寫目標名稱');return;}
   const id=document.getElementById('goal-id').value||uid();
   goals=goals.filter(g=>g.id!==id);
-  goals.push({id,name,ic:selGIc,rt:selRt,dow:[...selDow],
+  goals.push({id,name,ic:selGIc,rt:selRt,dow:[...selDow],catId:selGoalCatTag,
     mday:parseInt(document.getElementById('g-mday').value)||null,
     ydate:document.getElementById('g-ydate').value||null,
     ps:document.getElementById('g-pstart').value||null,pe:document.getElementById('g-pend').value||null,
@@ -1926,6 +2112,8 @@ function rdFin(){
   document.getElementById('f-sav').textContent=(cfg.cur||'HK$')+(sav||0).toLocaleString();
   // wallet overview
   rdWalletOverview();
+  // recurring transactions
+  rdRecurTxs();
   // budget
   const bEl=document.getElementById('bgt-bars');
   const bc=CE.filter(c=>bgts[c.id]);
@@ -2058,7 +2246,7 @@ document.querySelectorAll('#theme-sw .sw2').forEach(s=>{
 });
 document.getElementById('btn-exp').addEventListener('click',()=>{
   const a=document.createElement('a');
-  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({evts,cds,goals,txs,bgts,cfg,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal},null,2));
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({evts,cds,goals,txs,bgts,cfg,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs},null,2));
   a.download=`lp-backup-${today()}.json`;a.click();snk('📤 備份已下載');
 });
 document.getElementById('imp-file').addEventListener('change',function(){
@@ -2073,13 +2261,14 @@ document.getElementById('imp-file').addEventListener('change',function(){
       if(d.activities)activities=d.activities;if(d.wallets)wallets=d.wallets;
       if(d.reminders)reminders=d.reminders;if(d.rlogs)rlogs=d.rlogs;
       if(d.flogs)flogs=d.flogs;if(d.nutGoal)nutGoal=d.nutGoal;
+      if(d.exLib)exLib=d.exLib;if(d.recurTxs)recurTxs=d.recurTxs;
       save();applyTheme(cfg.theme);rerender();snk('✅ 匯入成功');
     }catch{snk('❌ 格式錯誤');}
   };r.readAsText(f);this.value='';
 });
 document.getElementById('btn-clr').addEventListener('click',()=>{
   if(!confirm('確定清除此帳戶所有資料？'))return;
-  evts=[];cds=[];goals=[];txs=[];bgts={};glogs={};hlogs={};notes=[];activities=[];sav=0;reminders=[];rlogs={};flogs={};nutGoal={goalType:'maintain',targetWeight:null,height:null,age:null,gender:'M',activityLevel:1.55,calOverride:null};
+  evts=[];cds=[];goals=[];txs=[];bgts={};glogs={};hlogs={};notes=[];activities=[];sav=0;reminders=[];rlogs={};flogs={};nutGoal={goalType:'maintain',targetWeight:null,height:null,age:null,gender:'M',activityLevel:1.55,calOverride:null};recurTxs=[];
   wallets=[{id:'cash',name:'現金',em:'💵',balance:0},{id:'credit',name:'信用卡',em:'💳',balance:0},{id:'octopus',name:'八達通',em:'🎫',balance:0}];
   save();rerender();snk('🗑️ 已清除');
 });
@@ -2152,6 +2341,134 @@ function rdWalletOverview(){
         <div style="font-size:11px;color:var(--tx2)">記錄收入 ${cur}${inc.toLocaleString()} · 支出 ${cur}${exp.toLocaleString()}</div>
       </div>
       <div class="wallet-bal">${cur}${(w.balance+net).toLocaleString()}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+//  RECURRING TRANSACTIONS
+// ══════════════════════════════════════
+let selRecurTp='expense';
+function openRecurModal(id){
+  document.getElementById('recur-id').value=id||'';
+  document.getElementById('recur-name-inp').value='';
+  document.getElementById('recur-amt').value='';
+  document.getElementById('recur-start').value=today();
+  document.getElementById('recur-installments').value='';
+  document.getElementById('recur-note').value='';
+  document.getElementById('recur-period').value='monthly';
+  document.getElementById('mo-recur-title').textContent=id?'編輯定期項目':'新增定期支出/收入';
+  selRecurTp='expense';
+  document.getElementById('recur-type-tags').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.rtp==='expense'));
+  if(id){
+    const r=recurTxs.find(x=>x.id===id);
+    if(r){
+      document.getElementById('recur-name-inp').value=r.name||'';
+      document.getElementById('recur-amt').value=r.amt||'';
+      document.getElementById('recur-start').value=r.startDate||today();
+      document.getElementById('recur-installments').value=r.installments||'';
+      document.getElementById('recur-note').value=r.note||'';
+      document.getElementById('recur-period').value=r.period||'monthly';
+      selRecurTp=r.tp||'expense';
+      document.getElementById('recur-type-tags').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.rtp===selRecurTp));
+    }
+  }
+  openM('mo-recur');
+}
+document.getElementById('recur-type-tags').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('recur-type-tags').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.add('sel');selRecurTp=t.dataset.rtp;
+  });
+});
+document.getElementById('btn-save-recur').addEventListener('click',()=>{
+  const name=document.getElementById('recur-name-inp').value.trim();
+  const amt=parseFloat(document.getElementById('recur-amt').value);
+  const startDate=document.getElementById('recur-start').value;
+  if(!name||!amt||!startDate){snk('⚠️ 請填寫名稱、金額和開始日期');return;}
+  const id=document.getElementById('recur-id').value||uid();
+  const existing=recurTxs.find(x=>x.id===id);
+  recurTxs=recurTxs.filter(r=>r.id!==id);
+  recurTxs.push({
+    id,name,tp:selRecurTp,amt,
+    period:document.getElementById('recur-period').value||'monthly',
+    startDate,
+    installments:parseInt(document.getElementById('recur-installments').value)||null,
+    paidCount:existing?.paidCount||0,
+    paidDates:existing?.paidDates||[],
+    note:document.getElementById('recur-note').value.trim()||null
+  });
+  save();closeM('mo-recur');rdFin();snk('✅ 已儲存');
+});
+function nextPayDate(r){
+  if(!r.startDate)return null;
+  const start=new Date(r.startDate+'T00:00:00');
+  if(r.period==='monthly'){const d=new Date(start);d.setMonth(d.getMonth()+(r.paidCount||0));return d.toISOString().slice(0,10);}
+  if(r.period==='weekly'){const d=new Date(start);d.setDate(d.getDate()+(r.paidCount||0)*7);return d.toISOString().slice(0,10);}
+  if(r.period==='yearly'){const d=new Date(start);d.setFullYear(d.getFullYear()+(r.paidCount||0));return d.toISOString().slice(0,10);}
+  return null;
+}
+function isCurrentPeriodPaid(r){
+  const nextDate=nextPayDate(r);
+  return nextDate&&(r.paidDates||[]).includes(nextDate);
+}
+function markRecurPaid(id){
+  const r=recurTxs.find(x=>x.id===id);if(!r)return;
+  const nextDate=nextPayDate(r);if(!nextDate)return;
+  if(!r.paidDates)r.paidDates=[];
+  if(r.paidDates.includes(nextDate)){
+    r.paidDates=r.paidDates.filter(d=>d!==nextDate);
+    r.paidCount=Math.max(0,(r.paidCount||0)-1);
+    txs=txs.filter(t=>!(t.recurId===id&&t.date===nextDate));
+    save();rdFin();snk('已取消付款');
+  } else {
+    r.paidDates.push(nextDate);
+    r.paidCount=(r.paidCount||0)+1;
+    const cat=r.tp==='income'?'salary':'other';
+    txs.push({id:uid(),tp:r.tp,amt:r.amt,cat,date:nextDate,
+      note:r.name+(r.note?' ('+r.note+')':''),recurId:id,wid:null});
+    save();rdFin();rdDash();snk('✅ 已記錄付款並新增交易');
+  }
+}
+function delRecurTx(id){
+  if(!confirm('刪除此定期項目？'))return;
+  recurTxs=recurTxs.filter(r=>r.id!==id);save();rdFin();snk('🗑️ 已刪除');
+}
+function rdRecurTxs(){
+  const el=document.getElementById('recur-list');if(!el)return;
+  if(!recurTxs.length){
+    el.innerHTML=`<div style="color:var(--tx2);font-size:13px;padding:6px 0">尚未設定定期項目<br><span style="font-size:11px;opacity:.7">例如：月租、分期付款、薪金</span></div>`;return;
+  }
+  const cur=cfg.cur||'HK$';
+  const periodLbl={monthly:'每月',weekly:'每週',yearly:'每年'};
+  el.innerHTML=recurTxs.map(r=>{
+    const remaining=r.installments!=null?r.installments-(r.paidCount||0):null;
+    const pct=r.installments?Math.round((r.paidCount||0)/r.installments*100):null;
+    const nextDate=nextPayDate(r);
+    const paid=isCurrentPeriodPaid(r);
+    const totalVal=r.installments?r.installments*r.amt:null;
+    const done=r.installments&&remaining<=0;
+    return `<div class="recur-item">
+      <div class="recur-top">
+        <div class="recur-icon" style="background:${r.tp==='income'?'#22c55e22':'#ef444422'}">${r.tp==='income'?'💰':'💳'}</div>
+        <div style="flex:1;min-width:0">
+          <div class="recur-name">${esc(r.name)}${done?' <span style="font-size:10px;color:var(--ok)">✅完成</span>':''}</div>
+          <div class="recur-meta">${periodLbl[r.period]||'每月'} ${cur}${r.amt.toLocaleString(undefined,{maximumFractionDigits:2})}${r.installments?` · 已付 ${r.paidCount||0}/${r.installments} 期`:''}${r.note?' · '+esc(r.note):''}</div>
+        </div>
+        ${!done?`<button class="recur-pay-btn${paid?' paid':''}" onclick="markRecurPaid('${r.id}')">${paid?'✅ 已付':'記錄付款'}</button>`:''}
+      </div>
+      ${r.installments?`<div>
+        <div class="bbr" style="margin-bottom:4px"><div class="bbf" style="width:${Math.min(100,pct||0)}%;background:${pct>=100?'var(--ok)':'var(--P)'}"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx2)">
+          <span>${Math.min(100,pct||0)}% 完成${remaining>0?' · 剩 '+remaining+' 期':''}</span>
+          ${totalVal?`<span>總額 ${cur}${totalVal.toLocaleString()}</span>`:''}
+        </div>
+      </div>`:''}
+      ${nextDate&&!done?`<div style="font-size:11px;color:var(--tx2);margin-top:4px">📅 ${paid?'本期':'下期'}付款日：${nextDate}</div>`:''}
+      <div style="margin-top:6px;display:flex;gap:5px">
+        <button class="btn bg bs" onclick="openRecurModal('${r.id}')">✏️</button>
+        <button class="btn bg bs" onclick="delRecurTx('${r.id}')">🗑️</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -2627,12 +2944,156 @@ document.getElementById('btn-save-rem').addEventListener('click',()=>{
 });
 
 // ══════════════════════════════════════
-//  ACTIVITY LOG
+//  ACTIVITY LOG & EXERCISE CATEGORIES
 // ══════════════════════════════════════
 let selActType='重訓',selActFeel=null;
 const WEIGHT_TYPES=['重訓','HIIT'];
 const CARDIO_TYPES=['跑步','游泳','單車'];
 const GENERIC_TYPES=['瑜伽','球類','其他'];
+
+const ACT_CATS=[
+  {id:'wt',name:'重訓',em:'💪'},{id:'run',name:'跑步',em:'🏃'},
+  {id:'swim',name:'游泳',em:'🏊'},{id:'bike',name:'單車',em:'🚴'},
+  {id:'yoga',name:'瑜伽',em:'🧘'},{id:'hiit',name:'HIIT',em:'🔥'},
+  {id:'ball',name:'球類',em:'⚽'},{id:'other',name:'其他',em:'📌'}
+];
+const TYPE_TO_CAT={重訓:'wt',跑步:'run',游泳:'swim',單車:'bike',瑜伽:'yoga','HIIT':'hiit',球類:'ball',其他:'other'};
+let curActCat='wt', actViewMode='hist';
+
+function toggleActView(){
+  actViewMode=actViewMode==='hist'?'cat':'hist';
+  const btn=document.getElementById('act-view-btn');
+  if(actViewMode==='cat'){
+    document.getElementById('act-hist-view').style.display='none';
+    document.getElementById('act-cat-view').style.display='block';
+    btn.textContent='📋 按日期';
+    rdActCatView();
+  } else {
+    document.getElementById('act-hist-view').style.display='block';
+    document.getElementById('act-cat-view').style.display='none';
+    btn.textContent='📊 按項目';
+    rdActList();
+  }
+}
+
+function rdActCatView(){
+  const tabsEl=document.getElementById('act-cat-tabs');
+  tabsEl.innerHTML=ACT_CATS.map(c=>`<span class="act-cat-tab${curActCat===c.id?' on':''}" data-catid="${c.id}" onclick="selActCat('${c.id}')">${c.em} ${c.name}</span>`).join('');
+  rdExByCat(curActCat);
+}
+function selActCat(catId){
+  curActCat=catId;
+  document.querySelectorAll('.act-cat-tab').forEach(t=>t.classList.toggle('on',t.dataset.catid===catId));
+  rdExByCat(catId);
+}
+function rdExByCat(catId){
+  const el=document.getElementById('act-ex-list');
+  const cat=ACT_CATS.find(c=>c.id===catId);
+  const catActs=activities.filter(a=>TYPE_TO_CAT[a.type]===catId);
+  if(catId==='wt'||catId==='hiit'){
+    // Show individual exercises from sets
+    const exMap={};
+    catActs.forEach(act=>{
+      (act.sets||[]).forEach(s=>{
+        if(!s.name)return;
+        if(!exMap[s.name])exMap[s.name]={sessions:[],maxW:0};
+        exMap[s.name].sessions.push({date:act.date,s,actId:act.id,feel:act.feel});
+        if((s.weight||0)>exMap[s.name].maxW)exMap[s.name].maxW=s.weight||0;
+      });
+    });
+    // Add unrecorded library exercises
+    exLib.filter(e=>e.catId===catId).forEach(e=>{if(!exMap[e.name])exMap[e.name]={sessions:[],maxW:0};});
+    const entries=Object.entries(exMap).sort((a,b)=>b[1].sessions.length-a[1].sessions.length);
+    if(!entries.length){el.innerHTML=`<div class="empty"><span class="ei">${cat?.em}</span>尚未有${cat?.name}記錄<br><span style="font-size:12px">按「＋ 新增」開始記錄</span></div>`;return;}
+    el.innerHTML=entries.map(([name,info])=>{
+      const lastDate=info.sessions.sort((a,b)=>b.date.localeCompare(a.date))[0]?.date;
+      const pr=info.maxW?`PR ${info.maxW}kg`:null;
+      return `<div class="ex-card" onclick="openExHist('${name.replace(/'/g,"\\'")}','${catId}')">
+        <div class="ex-card-top">
+          <span style="font-size:17px">${cat?.em}</span>
+          <span class="ex-card-name">${esc(name)}</span>
+          ${pr?`<span class="pr-badge">${pr}</span>`:''}
+          <span style="color:var(--P);font-size:14px;font-weight:700">›</span>
+        </div>
+        <div class="ex-card-meta">${info.sessions.length?`${info.sessions.length} 次紀錄 · 最後：${lastDate}`:'尚未記錄，點擊查看'}</div>
+      </div>`;
+    }).join('');
+  } else {
+    // Show sessions directly for cardio/generic
+    if(!catActs.length){el.innerHTML=`<div class="empty"><span class="ei">${cat?.em}</span>尚未有${cat?.name}記錄</div>`;return;}
+    const sorted=[...catActs].sort((a,b)=>b.date.localeCompare(a.date));
+    el.innerHTML=sorted.map(act=>{
+      let detail='';
+      if(act.sets?.length)detail=act.sets.map(s=>`${esc(s.name||cat?.name)}${s.dist?' '+s.dist+'km':''}${s.time?' '+s.time+'分':''}`).join(' · ');
+      else if(act.notes)detail=esc(act.notes.slice(0,60));
+      return `<div class="ex-card">
+        <div class="ex-card-top">
+          <span style="font-size:17px">${cat?.em}</span>
+          <span class="ex-card-name">${act.date}</span>
+          ${act.feel?`<span class="pr-badge" style="background:var(--ok)">${act.feel}</span>`:''}
+          <button class="btn bg bs" onclick="openActModal('${act.id}')" style="margin-left:auto">✏️</button>
+          <button class="btn bg bs" onclick="delAct('${act.id}')">🗑️</button>
+        </div>
+        ${detail?`<div class="ex-card-meta">${detail}</div>`:''}
+      </div>`;
+    }).join('');
+  }
+}
+function openExHist(exName,catId){
+  document.getElementById('ex-hist-name').textContent=exName;
+  const cat=ACT_CATS.find(c=>c.id===catId);
+  document.getElementById('ex-hist-cat-lbl').textContent=(cat?.em||'')+' '+(cat?.name||'');
+  const catActs=activities.filter(a=>TYPE_TO_CAT[a.type]===catId);
+  const sessions=[];
+  catActs.forEach(act=>{
+    const ms=(act.sets||[]).filter(s=>s.name===exName);
+    if(ms.length)sessions.push({date:act.date,sets:ms,feel:act.feel,actId:act.id});
+  });
+  sessions.sort((a,b)=>b.date.localeCompare(a.date));
+  let pr=null,prDate=null;
+  sessions.forEach(sess=>sess.sets.forEach(s=>{if(s.weight&&(!pr||s.weight>pr)){pr=s.weight;prDate=sess.date;}}));
+  document.getElementById('ex-hist-pr').innerHTML=pr?`🏆 PR：${pr}kg（${prDate}）　共 ${sessions.length} 次訓練`:`共 ${sessions.length} 次訓練`;
+  const body=document.getElementById('ex-hist-body');
+  if(!sessions.length){body.innerHTML=`<div class="empty">尚未有記錄<br><span style="font-size:12px;opacity:.7">在「＋ 新增」中記錄此動作</span></div>`;
+  } else {
+    body.innerHTML=sessions.map(sess=>`<div class="ex-sess-card">
+      <div class="ex-sess-date">📅 ${sess.date}${sess.feel?' · '+sess.feel:''}</div>
+      ${sess.sets.map(s=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bdr)">
+        <span style="font-size:13px;font-weight:600">${esc(s.name)}</span>
+        <div style="display:flex;gap:10px;align-items:center">
+          ${s.sets?`<span style="font-size:12px;color:var(--tx2)">${s.sets}組</span>`:''}
+          ${s.reps?`<span style="font-size:12px;color:var(--tx2)">${s.reps}次</span>`:''}
+          ${s.weight?`<span style="font-size:14px;font-weight:700;color:var(--P)">${s.weight}kg</span>`:''}
+        </div>
+      </div>`).join('')}
+      <div style="margin-top:6px;text-align:right">
+        <button class="btn bg bs" onclick="closeExHist();openActModal('${sess.actId}')">✏️ 編輯此次</button>
+      </div>
+    </div>`).join('');
+  }
+  document.getElementById('ex-hist-ov').classList.add('on');
+}
+function closeExHist(){document.getElementById('ex-hist-ov').classList.remove('on');}
+
+// Exercise quick-pick in modal
+function updExQuickPick(){
+  const catId=TYPE_TO_CAT[selActType];
+  const qel=document.getElementById('act-ex-quick');
+  const qtags=document.getElementById('act-ex-quick-tags');
+  if(catId&&WEIGHT_TYPES.includes(selActType)){
+    const libEx=exLib.filter(e=>e.catId===catId);
+    if(libEx.length){
+      qtags.innerHTML=libEx.map(e=>`<button class="btn bg bs" style="font-size:11px;padding:4px 9px" onclick="addExToBuilder('${e.name.replace(/'/g,"\\'")}')">${esc(e.name)}</button>`).join('');
+      qel.style.display='block';return;
+    }
+  }
+  qel.style.display='none';
+}
+function addExToBuilder(name){
+  const existing=[...document.querySelectorAll('.s-name')].find(i=>i.value===name);
+  if(existing){snk('已在列表中');return;}
+  addSetRow({name});
+}
 
 function openActModal(editId){
   document.getElementById('act-id').value=editId||'';
@@ -2682,6 +3143,7 @@ function updActTypeUI(){
   document.getElementById('act-weights-section').style.display=isW?'block':'none';
   document.getElementById('act-cardio-section').style.display=isC?'block':'none';
   document.getElementById('act-notes-section').style.display=isG?'block':'none';
+  updExQuickPick();
 }
 function resetSetBuilder(){
   // Weight training
@@ -2757,6 +3219,8 @@ document.getElementById('btn-save-act').addEventListener('click',()=>{
   save();closeM('mo-act');rdHealth();snk('✅ 活動已記錄');
 });
 function rdActList(){
+  // Also refresh cat view if it's visible
+  if(actViewMode==='cat')rdActCatView();
   const el=document.getElementById('act-list');
   const sorted=[...activities].sort((a,b)=>b.date.localeCompare(a.date)||(b.ts-a.ts));
   if(!sorted.length){el.innerHTML=`<div style="color:var(--tx2);font-size:13px;padding:8px 0">未有活動記錄，按「＋ 新增」開始</div>`;return;}
