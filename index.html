@@ -1485,11 +1485,68 @@ const DEFAULT_CI=[
 ];
 
 // ══════════════════════════════════════
+//  DATA SCHEMA VERSION
+//  Bump this number whenever data structure changes.
+//  Add a migration block in runMigrations() for each version step.
+// ══════════════════════════════════════
+const SCHEMA_VER = 2;
+function runMigrations(){
+  const v = DB.get('_sv', 0);
+  if(v >= SCHEMA_VER) return;
+
+  // ── v0 → v1: first versioned release ──────────────────────────────
+  if(v < 1){
+    // Ensure cfg has all keys (older versions might be missing some)
+    const c = DB.get('cfg',{});
+    if(!c.lang)  c.lang  = 'zh';
+    if(!c.cur)   c.cur   = 'HK$';
+    if(!c.theme) c.theme = '#6C63FF';
+    DB.set('cfg', c);
+    // wallets: ensure balance field exists on each wallet
+    const ws = DB.get('wallets',[]);
+    ws.forEach(w=>{ if(w.balance==null) w.balance=0; });
+    if(ws.length) DB.set('wallets', ws);
+    // goals: ensure catId field exists
+    const gs = DB.get('goals',[]);
+    gs.forEach(g=>{ if(!g.catId) g.catId='other'; });
+    if(gs.length) DB.set('goals', gs);
+    // txs: ensure catId field exists
+    const ts = DB.get('txs',[]);
+    ts.forEach(t=>{ if(!t.catId) t.catId=(t.tp==='income'?'salary':'food'); });
+    if(ts.length) DB.set('txs', ts);
+  }
+
+  // ── v1 → v2: add recurTxs support, goalCats ───────────────────────
+  if(v < 2){
+    // recurTxs did not exist before — default empty already handled in loadData
+    // goalCats merge already handled below in loadData
+    // nutGoal: ensure all keys present
+    const ng = DB.get('nutGoal',{});
+    const ngDef = {goalType:'maintain',targetWeight:null,height:null,age:null,gender:'M',activityLevel:1.55,calOverride:null};
+    Object.keys(ngDef).forEach(k=>{ if(ng[k]===undefined) ng[k]=ngDef[k]; });
+    DB.set('nutGoal', ng);
+  }
+
+  // ── future versions: add migration blocks here ─────────────────────
+  // if(v < 3){ ... }
+
+  DB.set('_sv', SCHEMA_VER);
+}
+
+// ══════════════════════════════════════
 //  DATA
 // ══════════════════════════════════════
 let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs,txCatsE,txCatsI,goalCats;
 function loadData(){
+  // Run schema migrations first (safe no-op if already up-to-date)
+  runMigrations();
+
   cfg        =DB.get('cfg',{lang:'zh',cur:'HK$',theme:'#6C63FF'});
+  // Fill any missing cfg keys (forward-compat)
+  if(!cfg.lang)  cfg.lang  ='zh';
+  if(!cfg.cur)   cfg.cur   ='HK$';
+  if(!cfg.theme) cfg.theme ='#6C63FF';
+
   evts       =DB.get('evts',[]);
   cds        =DB.get('cds',[]);
   goals      =DB.get('goals',[]);
@@ -1505,13 +1562,18 @@ function loadData(){
     {id:'credit',name:'信用卡',em:'💳',balance:0},
     {id:'octopus',name:'八達通',em:'🎫',balance:0}
   ]);
+  // Ensure every wallet has a balance field (backward compat)
+  wallets.forEach(w=>{ if(w.balance==null) w.balance=0; });
   reminders  =DB.get('reminders',[]);
   rlogs      =DB.get('rlogs',{});
   flogs      =DB.get('flogs',{});
   nutGoal    =DB.get('nutGoal',{goalType:'maintain',targetWeight:null,height:null,age:null,gender:'M',activityLevel:1.55,calOverride:null});
+  // Fill any missing nutGoal keys
+  const _ngDef={goalType:'maintain',targetWeight:null,height:null,age:null,gender:'M',activityLevel:1.55,calOverride:null};
+  Object.keys(_ngDef).forEach(k=>{ if(nutGoal[k]===undefined) nutGoal[k]=_ngDef[k]; });
   txCatsE    =DB.get('txCatsE',DEFAULT_CE);
   txCatsI    =DB.get('txCatsI',DEFAULT_CI);
-  // Migrate old data: ensure new built-in cats are merged in
+  // Merge any new built-in categories that didn't exist in older versions
   DEFAULT_CE.forEach(d=>{if(!txCatsE.find(c=>c.id===d.id))txCatsE.splice(txCatsE.length-1,0,d);});
   DEFAULT_CI.forEach(d=>{if(!txCatsI.find(c=>c.id===d.id))txCatsI.splice(txCatsI.length-1,0,d);});
   exLib      =DB.get('exLib',[
