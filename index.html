@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#6C63FF">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="生活規劃">
@@ -1436,22 +1437,22 @@ function syncToCloud(){
 
 async function loadFromCloud(){
   if(!fauth.currentUser)return;
-  try{
-    // Use server source on first load to ensure fresh data; falls back to cache if offline
-    const doc=await fdb.collection('users').doc(fauth.currentUser.uid).get();
-    if(!doc.exists||!doc.data().data)return;
-
-    const cloudTs  = doc.data().ts  || 0;
-    const localMod = _localMod();
-
-    if(cloudTs >= localMod){
-      // Cloud is equal or newer → overwrite local (new device, or another device made changes)
-      Object.entries(doc.data().data).forEach(([k,v])=>localStorage.setItem('lp_'+k,v));
-      // Align local mod timestamp so next sync doesn't re-upload unnecessarily
-      localStorage.setItem('lp__lm', cloudTs.toString());
-    }
-    // else: local is newer (offline edits) → keep local, next syncToCloud() will upload
-  }catch(e){console.warn('load err',e);}
+  const uid=fauth.currentUser.uid;
+  let doc=null;
+  // 1. Try server first (fresh data)
+  try{ doc=await fdb.collection('users').doc(uid).get(); }
+  catch(_){
+    // 2. Server unreachable → try Firestore local cache (works offline after first sync)
+    try{ doc=await fdb.collection('users').doc(uid).get({source:'cache'}); }
+    catch(__){ return; } // no cache yet — use localStorage as-is
+  }
+  if(!doc||!doc.exists||!doc.data().data)return;
+  const cloudTs =doc.data().ts||0;
+  const localMod=_localMod();
+  if(cloudTs>=localMod){
+    Object.entries(doc.data().data).forEach(([k,v])=>localStorage.setItem('lp_'+k,v));
+    localStorage.setItem('lp__lm',cloudTs.toString());
+  }
 }
 
 // ══════════════════════════════════════
