@@ -1,4 +1,4 @@
-const CACHE_NAME = 'life-planner-v12';
+const CACHE_NAME = 'life-planner-v13';
 const ASSETS = ['./'];
 
 self.addEventListener('install', e => {
@@ -14,6 +14,8 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  // Only cache GET requests — POST (e.g. Firebase auth) cannot be cached
+  if (e.request.method !== 'GET') return;
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).then(res => {
       const clone = res.clone();
