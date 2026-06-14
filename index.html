@@ -1371,7 +1371,7 @@ function authErrMsg(code){
     'auth/operation-not-allowed':'此登入方式未啟用（請在 Firebase Console 開啟 Google 登入）',
     'auth/unauthorized-domain':'此網域未授權，請在 Firebase Console → Authentication → 授權網域 加入當前網址',
     'auth/network-request-failed':'網絡錯誤，請檢查連線',
-    'auth/popup-blocked':'彈窗被攔截，正在切換至重新導向登入…',
+    'auth/popup-blocked':'彈窗被攔截！請在網址列允許彈窗後重試',
     'auth/popup-closed-by-user':'登入視窗已關閉，請重試',
     'auth/cancelled-popup-request':'登入已取消'}[code]||`登入失敗 (${code||'unknown'})`);
 }
@@ -1383,23 +1383,16 @@ function doGoogle(){
   const provider=new firebase.auth.GoogleAuthProvider();
   provider.addScope('email');
   provider.addScope('profile');
-  // PWA standalone / mobile → must use redirect (popups are blocked)
-  const isPWA=window.matchMedia('(display-mode:standalone)').matches||navigator.standalone===true;
-  const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if(isPWA||isMobile){
-    sessionStorage.setItem('lp_gr','1');
-    fauth.signInWithRedirect(provider);
-    return;
-  }
-  // Desktop web → try popup, fall back to redirect if blocked
+  // Use popup for all cases — works without third-party cookies (postMessage-based)
   fauth.signInWithPopup(provider)
-    .then(()=>{loadEl.style.display='none';})
+    .then(()=>{ loadEl.style.display='none'; })
     .catch(e=>{
-      if(e.code==='auth/popup-blocked'||e.code==='auth/popup-closed-by-user'){
-        sessionStorage.setItem('lp_gr','1');
-        fauth.signInWithRedirect(provider);
+      loadEl.style.display='none';
+      if(e.code==='auth/popup-closed-by-user'||e.code==='auth/cancelled-popup-request'){
+        errEl.textContent='登入視窗已關閉，請重試';errEl.classList.add('on');
+      } else if(e.code==='auth/popup-blocked'){
+        errEl.textContent='彈窗被瀏覽器攔截！請在網址列右側允許彈窗，再重試';errEl.classList.add('on');
       } else {
-        loadEl.style.display='none';
         errEl.textContent=authErrMsg(e.code);errEl.classList.add('on');
       }
     });
@@ -3639,34 +3632,7 @@ document.getElementById('btn-sync-now').addEventListener('click',async()=>{
 
 // Auth state → init app
 let appInited=false;
-// ── Handle Google redirect result (mobile / PWA flow) ──
-// Read & immediately clear the flag so it only applies once
-const _pendingGoogle=sessionStorage.getItem('lp_gr');
-if(_pendingGoogle) sessionStorage.removeItem('lp_gr');
 const _authLoadEl=document.getElementById('auth-loading');
-
-if(_pendingGoogle){
-  // Page just returned from Google OAuth — show spinner, wait for result
-  if(_authLoadEl)_authLoadEl.style.display='block';
-  fauth.getRedirectResult().then(r=>{
-    if(_authLoadEl)_authLoadEl.style.display='none';
-    if(!r?.user&&!fauth.currentUser){
-      // Redirect finished but no user (e.g. user cancelled) → show login
-      document.getElementById('auth-ov').style.display='flex';
-    }
-    // If r.user exists, onAuthStateChanged fires with user and handles the rest
-  }).catch(e=>{
-    if(_authLoadEl)_authLoadEl.style.display='none';
-    if(!fauth.currentUser) document.getElementById('auth-ov').style.display='flex';
-    if(e?.code){
-      const errEl=document.getElementById('auth-err');
-      if(errEl){errEl.textContent=authErrMsg(e.code);errEl.classList.add('on');}
-    }
-  });
-} else {
-  // Normal page load — still call getRedirectResult to clear any stale state
-  fauth.getRedirectResult().catch(()=>{});
-}
 
 fauth.onAuthStateChanged(async user=>{
   if(user){
@@ -3686,11 +3652,7 @@ fauth.onAuthStateChanged(async user=>{
     }
     rdDash();updateAccHdr();
   } else {
-    // Only show login screen when NOT waiting for Google redirect to complete
-    if(!_pendingGoogle){
-      document.getElementById('auth-ov').style.display='flex';
-    }
-    // If _pendingGoogle is true: keep showing spinner — getRedirectResult above will resolve
+    document.getElementById('auth-ov').style.display='flex';
   }
 });
 </script>
