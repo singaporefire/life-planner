@@ -1,4 +1,4 @@
-const CACHE_NAME = 'life-planner-v9';
+const CACHE_NAME = 'life-planner-v10';
 const ASSETS = ['./'];
 
 self.addEventListener('install', e => {
