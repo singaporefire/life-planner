@@ -26,7 +26,7 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100dv
   background:var(--sur);border-top:1px solid var(--bdr);display:flex;z-index:100;
   padding-bottom:env(safe-area-inset-bottom);overflow-x:auto;scrollbar-width:none}
 #nav::-webkit-scrollbar{display:none}
-.nb{flex:0 0 calc(100%/8);min-width:48px;display:flex;flex-direction:column;align-items:center;
+.nb{flex:0 0 calc(100%/9);min-width:46px;display:flex;flex-direction:column;align-items:center;
   gap:2px;padding:8px 2px 6px;border:none;background:none;cursor:pointer;
   color:var(--tx2);font-size:9px;font-family:var(--fn);transition:color .2s;white-space:nowrap}
 .nb .i{font-size:19px;transition:transform .2s}
@@ -227,6 +227,15 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=
   border:1.5px solid transparent;background:var(--sur2);color:var(--tx);transition:all .15s;display:flex;align-items:center;gap:5px}
 .wallet-sel-tag.sel{border-color:var(--P);background:var(--PL);color:var(--P)}
 
+/* REMINDERS / TASKS */
+.ri{display:flex;align-items:flex-start;gap:11px;padding:12px 0;border-bottom:1px solid var(--bdr)}
+.ri:last-child{border-bottom:none}
+.rib{width:42px;height:42px;border-radius:11px;background:var(--PL);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.ri.done-today .rib{opacity:.45}
+.task-done-btn{padding:5px 12px;border-radius:18px;border:2px solid var(--ok);background:none;color:var(--ok);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:var(--fn)}
+.task-done-btn.done{background:var(--ok);color:#fff}
+.h-date-nav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+
 /* MISC */
 .empty{text-align:center;padding:28px 14px;color:var(--tx2)}
 .empty .ei{font-size:44px;display:block;margin-bottom:7px}
@@ -343,8 +352,11 @@ canvas{max-width:100%;display:block}
     <div id="d-cd"></div>
   </div>
   <div class="card">
-    <div class="ct">今日目標打卡</div>
-    <div id="d-goals"></div>
+    <div class="ct" style="display:flex;justify-content:space-between;align-items:center">
+      <span>⚡ 今日待辦 &amp; 提醒</span>
+      <span id="d-tasks-count" style="font-size:11px;color:var(--P);font-weight:700"></span>
+    </div>
+    <div id="d-tasks"></div>
   </div>
   <div class="card">
     <div class="ct">今日行程</div>
@@ -397,6 +409,26 @@ canvas{max-width:100%;display:block}
   <button class="fab" id="btn-add-goal">＋</button>
 </div>
 
+<!-- ══ REMINDERS ══ -->
+<div id="pg-rem" class="pg">
+  <div class="hdr">
+    <div class="sub">提醒事項 · Reminders</div>
+    <h1>習慣 · 定期 · 提醒</h1>
+  </div>
+  <div class="card" style="margin-top:-8px">
+    <div class="ct" style="display:flex;justify-content:space-between;align-items:center">
+      <span>今日需完成</span>
+      <span id="rem-today-count" style="font-size:11px;font-weight:700;color:var(--P)"></span>
+    </div>
+    <div id="rem-today-list"></div>
+  </div>
+  <div class="card">
+    <div class="ct">所有提醒規則</div>
+    <div id="rem-all-list"></div>
+  </div>
+  <button class="fab" id="btn-add-rem">＋</button>
+</div>
+
 <!-- ══ HEALTH ══ -->
 <div id="pg-health" class="pg">
   <div class="hdr">
@@ -404,7 +436,11 @@ canvas{max-width:100%;display:block}
     <h1 id="hlth-hdr">今日健康狀況</h1>
   </div>
   <div class="card" style="margin-top:-8px">
-    <div class="ct">今日記錄</div>
+    <div class="h-date-nav">
+      <button class="btn bg bs" id="h-prev">‹</button>
+      <input type="date" id="h-date" class="fc" style="flex:1;text-align:center;font-weight:700;padding:8px">
+      <button class="btn bg bs" id="h-next">›</button>
+    </div>
     <div class="metrics">
       <div class="metric-box">
         <div class="metric-lbl">🌅 起床時間</div>
@@ -445,7 +481,7 @@ canvas{max-width:100%;display:block}
       <label class="fl">📝 備注</label>
       <input type="text" id="h-note" class="fc" placeholder="今日狀況備注...">
     </div>
-    <button class="btn bp bb" id="btn-save-hlth">💾 儲存今日健康記錄</button>
+    <button class="btn bp bb" id="btn-save-hlth">💾 儲存健康記錄</button>
   </div>
   <div class="card">
     <div class="ct" style="display:flex;justify-content:space-between">
@@ -616,7 +652,18 @@ canvas{max-width:100%;display:block}
       <button class="btn bg bs" id="btn-sync-now">立即同步</button>
     </div>
   </div>
-  <div style="text-align:center;color:var(--tx2);font-size:11px;padding:18px">生活規劃家 v3.0 · Cloud Sync Enabled ☁️</div>
+  <div class="card">
+    <div class="ct">通知設定</div>
+    <div class="sr">
+      <div><div class="slbl">每日提醒通知</div><div class="ssub">開啟後可在主畫面收到提醒</div></div>
+      <button class="btn bg bs" id="btn-req-notif" onclick="initNotifications();snk('已請求通知權限')">開啟通知</button>
+    </div>
+    <div class="sr">
+      <div><div class="slbl">立即查看今日提醒</div></div>
+      <button class="btn bg bs" onclick="checkTodayNotifications();snk('已發送通知')">發送通知</button>
+    </div>
+  </div>
+  <div style="text-align:center;color:var(--tx2);font-size:11px;padding:18px">生活規劃家 v4.0 · 提醒系統 · Cloud Sync ☁️</div>
 </div>
 
 <!-- ══ NAV ══ -->
@@ -625,6 +672,7 @@ canvas{max-width:100%;display:block}
   <button class="nb" data-pg="cal"><span class="i">📅</span>行事曆</button>
   <button class="nb" data-pg="cd"><span class="i">⏳</span>倒數</button>
   <button class="nb" data-pg="goals"><span class="i">🎯</span>目標</button>
+  <button class="nb" data-pg="rem"><span class="i">🔔</span>提醒</button>
   <button class="nb" data-pg="health"><span class="i">💪</span>健康</button>
   <button class="nb" data-pg="notes"><span class="i">📓</span>筆記</button>
   <button class="nb" data-pg="fin"><span class="i">💰</span>記帳</button>
@@ -663,7 +711,7 @@ canvas{max-width:100%;display:block}
 <!-- Countdown -->
 <div class="mo" id="mo-cd">
   <div class="mb">
-    <div class="mt">新增倒數<button class="mc" data-close="mo-cd">✕</button></div>
+    <div class="mt"><span id="mo-cd-title">新增倒數</span><button class="mc" data-close="mo-cd">✕</button></div>
     <input type="hidden" id="cd-id">
     <div class="fg"><label class="fl">事件名稱</label><input type="text" id="cd-name" class="fc"></div>
     <div class="fg"><label class="fl">目標日期</label><input type="date" id="cd-date" class="fc"></div>
@@ -867,6 +915,54 @@ canvas{max-width:100%;display:block}
   </div>
 </div>
 
+<!-- Reminder -->
+<div class="mo" id="mo-rem">
+  <div class="mb">
+    <div class="mt"><span id="mo-rem-title">新增提醒</span><button class="mc" data-close="mo-rem">✕</button></div>
+    <input type="hidden" id="rem-id">
+    <div class="fg"><label class="fl">提醒名稱</label><input type="text" id="rem-name" class="fc" placeholder="e.g. 剪指甲、繳費、飲水..."></div>
+    <div class="fg"><label class="fl">圖示</label>
+      <div class="tags" id="rem-icons">
+        <span class="tag sel" data-ri="🔔">🔔</span><span class="tag" data-ri="💊">💊</span>
+        <span class="tag" data-ri="💰">💰</span><span class="tag" data-ri="✂️">✂️</span>
+        <span class="tag" data-ri="🏥">🏥</span><span class="tag" data-ri="📞">📞</span>
+        <span class="tag" data-ri="📋">📋</span><span class="tag" data-ri="🧹">🧹</span>
+        <span class="tag" data-ri="💧">💧</span><span class="tag" data-ri="⭐">⭐</span>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">重複週期</label>
+      <div class="tags" id="rem-rep-tabs">
+        <span class="tag sel" data-rr="daily">每日</span>
+        <span class="tag" data-rr="weekly">每週指定日</span>
+        <span class="tag" data-rr="monthly">每月指定日</span>
+        <span class="tag" data-rr="yearly">每年指定日</span>
+      </div>
+    </div>
+    <div class="fg" id="rem-weekly" style="display:none">
+      <label class="fl">星期幾提醒（可多選）</label>
+      <div class="dpills" id="rem-dow">
+        <div class="dp" data-rd="0">日</div><div class="dp" data-rd="1">一</div>
+        <div class="dp" data-rd="2">二</div><div class="dp" data-rd="3">三</div>
+        <div class="dp" data-rd="4">四</div><div class="dp" data-rd="5">五</div>
+        <div class="dp" data-rd="6">六</div>
+      </div>
+    </div>
+    <div class="fg" id="rem-monthly" style="display:none">
+      <label class="fl">每月第幾日（1–31）</label>
+      <input type="number" id="rem-mday" class="fc" min="1" max="31" placeholder="e.g. 1">
+    </div>
+    <div class="fg" id="rem-yearly" style="display:none">
+      <label class="fl">每年提醒日（MM-DD）</label>
+      <input type="text" id="rem-ydate" class="fc" placeholder="e.g. 06-15">
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">⏰ 提醒時間（選填）</label><input type="time" id="rem-time" class="fc"></div>
+      <div class="fg"><label class="fl">備注（選填）</label><input type="text" id="rem-note" class="fc" placeholder="備注..."></div>
+    </div>
+    <button class="btn bp bb" id="btn-save-rem">儲存提醒</button>
+  </div>
+</div>
+
 <!-- Logout Confirm -->
 <div class="mo" id="mo-logout">
   <div class="mb" style="text-align:center">
@@ -1007,7 +1103,7 @@ const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 // ══════════════════════════════════════
 //  DATA
 // ══════════════════════════════════════
-let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets;
+let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs;
 function loadData(){
   cfg        =DB.get('cfg',{lang:'zh',cur:'HK$',theme:'#6C63FF'});
   evts       =DB.get('evts',[]);
@@ -1025,12 +1121,15 @@ function loadData(){
     {id:'credit',name:'信用卡',em:'💳',balance:0},
     {id:'octopus',name:'八達通',em:'🎫',balance:0}
   ]);
+  reminders  =DB.get('reminders',[]);
+  rlogs      =DB.get('rlogs',{});
 }
 function save(){
   DB.set('cfg',cfg);DB.set('evts',evts);DB.set('cds',cds);DB.set('goals',goals);
   DB.set('txs',txs);DB.set('bgts',bgts);DB.set('sav',sav);
   DB.set('glogs',glogs);DB.set('hlogs',hlogs);DB.set('notes',notes);
   DB.set('acts',activities);DB.set('wallets',wallets);
+  DB.set('reminders',reminders);DB.set('rlogs',rlogs);
   syncToCloud();
 }
 loadData();
@@ -1062,7 +1161,7 @@ function go(n){
 }
 function curPg(){return document.querySelector('.pg.on')?.id?.replace('pg-','')||'dash'}
 function render(n){
-  ({dash:rdDash,cal:rdCal,cd:rdCds,goals:rdGoals,health:rdHealth,notes:rdNotes,fin:rdFin,set:rdSet})[n]?.();
+  ({dash:rdDash,cal:rdCal,cd:rdCds,goals:rdGoals,rem:rdReminders,health:rdHealth,notes:rdNotes,fin:rdFin,set:rdSet})[n]?.();
 }
 function rerender(){render(curPg())}
 
@@ -1174,18 +1273,31 @@ function rdDash(){
       <span style="font-weight:800;color:var(--P);font-size:14px">${d===0?'今日🎉':d>0?d+'天':Math.abs(d)+'天前'}</span>
     </div>`;
   }).join(''):`<div class="empty" style="padding:12px">⏳ 未有倒數事件</div>`;
-  // goals due today
+  // today's tasks: goals + reminders integrated
   const td=today();
   const due=goals.filter(g=>isDue(g,td));
-  document.getElementById('d-goals').innerHTML=due.length?due.map(g=>{
-    const done=(glogs[g.id]||[]).includes(td);
-    return `<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--bdr)">
+  const dueRem=reminders.filter(r=>isReminderDue(r,td));
+  const undoneGoals=due.filter(g=>!(glogs[g.id]||[]).includes(td));
+  const undoneRem=dueRem.filter(r=>!(rlogs[r.id]||[]).includes(td));
+  const totalPending=undoneGoals.length+undoneRem.length;
+  const totalTasks=due.length+dueRem.length;
+  const cntEl=document.getElementById('d-tasks-count');
+  if(cntEl)cntEl.textContent=totalPending>0?`${totalPending}/${totalTasks} 未完成`:(totalTasks>0?'✅ 全部完成':'');
+  const tasksHtml=[
+    ...due.map(g=>{const done=(glogs[g.id]||[]).includes(td);return `<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--bdr)">
       <span style="font-size:20px">${g.ic||'🎯'}</span>
       <div style="flex:1"><div style="font-size:13px;font-weight:600">${esc(g.name)}</div>
-      <div style="font-size:10px;color:var(--tx2)">${repLabel(g)}</div></div>
-      <button class="ckb ${done?'done':''}" onclick="qCheck('${g.id}')">${done?'已打卡✓':'打卡'}</button>
-    </div>`;
-  }).join(''):`<div style="padding:10px;color:var(--tx2);font-size:13px">今日無目標打卡任務</div>`;
+      <div style="font-size:10px;color:var(--tx2)">目標 · ${repLabel(g)}</div></div>
+      <button class="ckb ${done?'done':''}" onclick="qCheck('${g.id}')">${done?'✓已打卡':'打卡'}</button>
+    </div>`;}),
+    ...dueRem.map(r=>{const done=(rlogs[r.id]||[]).includes(td);return `<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--bdr)">
+      <span style="font-size:20px">${r.ic||'🔔'}</span>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${esc(r.name)}</div>
+      <div style="font-size:10px;color:var(--tx2)">提醒 · ${remRepLabel(r)}</div></div>
+      <button class="task-done-btn ${done?'done':''}" onclick="markRemDone('${r.id}')">${done?'✅完成':'標記完成'}</button>
+    </div>`;})
+  ].join('');
+  document.getElementById('d-tasks').innerHTML=tasksHtml||(totalTasks===0?`<div style="padding:10px;color:var(--tx2);font-size:13px">今日無待辦任務</div>`:`<div style="padding:10px;color:var(--ok);font-size:13px">🎉 今日所有任務已完成！</div>`);
   // events
   const te=getEvts(td);
   document.getElementById('d-evts').innerHTML=te.length?te.map(e=>`
@@ -1307,6 +1419,7 @@ document.getElementById('cd-icons').querySelectorAll('.tag').forEach(t=>{
 document.getElementById('btn-add-cd').addEventListener('click',()=>{
   ['cd-id','cd-name','cd-date','cd-note'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('cd-icons').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  document.getElementById('mo-cd-title').textContent='新增倒數';
   selCdIc='🎂';openM('mo-cd');
 });
 function rdCds(){
@@ -1321,17 +1434,32 @@ function rdCds(){
       </div>
       <div style="flex:1"><div style="font-size:14px;font-weight:600">${c.ic||'⭐'} ${esc(c.name)}</div>
       <div style="font-size:11px;color:var(--tx2)">${c.date}${c.note?' · '+esc(c.note):''}</div></div>
-      <button class="btn bg bs" onclick="delCd('${c.id}')">🗑️</button>
+      <div style="display:flex;gap:5px">
+        <button class="btn bg bs" onclick="openCdEdit('${c.id}')">✏️</button>
+        <button class="btn bg bs" onclick="delCd('${c.id}')">🗑️</button>
+      </div>
     </div>`;
   }).join(''):`<div class="empty"><span class="ei">⏳</span>未有倒數事件</div>`;
 }
 function delCd(id){cds=cds.filter(c=>c.id!==id);save();rdCds();snk('🗑️ 已刪除')}
+function openCdEdit(id){
+  const c=cds.find(x=>x.id===id);if(!c)return;
+  document.getElementById('cd-id').value=id;
+  document.getElementById('cd-name').value=c.name||'';
+  document.getElementById('cd-date').value=c.date||'';
+  document.getElementById('cd-note').value=c.note||'';
+  selCdIc=c.ic||'🎂';
+  document.getElementById('cd-icons').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.ic===selCdIc));
+  document.getElementById('mo-cd-title').textContent='編輯倒數';
+  openM('mo-cd');
+}
 document.getElementById('btn-save-cd').addEventListener('click',()=>{
   const name=document.getElementById('cd-name').value.trim(),date=document.getElementById('cd-date').value;
   if(!name||!date){snk('⚠️ 請填寫名稱和日期');return;}
   const id=document.getElementById('cd-id').value||uid();
   cds=cds.filter(c=>c.id!==id);
   cds.push({id,name,date,ic:selCdIc,note:document.getElementById('cd-note').value.trim()});
+  document.getElementById('mo-cd-title').textContent='新增倒數';
   save();closeM('mo-cd');rdCds();rdDash();snk('✅ 已儲存');
 });
 
@@ -1419,6 +1547,7 @@ function rdGoals(){
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px">
           ${g.rt!=='target'?`<span style="font-size:11px;color:var(--warn);font-weight:700">🔥${streak}</span>`:''}
           ${due?`<button class="ckb ${done?'done':''}" onclick="ckGoal('${g.id}')">${done?'✓':'打卡'}</button>`:'<span style="font-size:10px;color:var(--tx2)">非今日</span>'}
+          <button class="btn bg bs" onclick="openGoalEdit('${g.id}')">✏️</button>
           <button class="btn bg bs" onclick="delGoal('${g.id}')">🗑️</button>
         </div>
       </div>${prog}</div>`;
@@ -1434,6 +1563,24 @@ function ckGoal(gid){
   save();rdGoals();rdDash();snk('✅ 打卡成功 🔥');
 }
 function delGoal(id){goals=goals.filter(g=>g.id!==id);delete glogs[id];save();rdGoals();snk('🗑️ 已刪除')}
+function openGoalEdit(id){
+  const g=goals.find(x=>x.id===id);if(!g)return;
+  document.getElementById('goal-id').value=id;
+  document.getElementById('goal-name').value=g.name||'';
+  selGIc=g.ic||'🎯';selRt=g.rt||'daily';selDow=[...(g.dow||[])];
+  document.getElementById('goal-icons').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.ic===selGIc));
+  document.getElementById('goal-rep-tabs').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.rt===selRt));
+  document.getElementById('g-dow').querySelectorAll('.dp').forEach(p=>p.classList.toggle('sel',selDow.includes(parseInt(p.dataset.d))));
+  document.getElementById('g-mday').value=g.mday||'';
+  document.getElementById('g-ydate').value=g.ydate||'';
+  document.getElementById('g-pstart').value=g.ps||'';
+  document.getElementById('g-pend').value=g.pe||'';
+  document.getElementById('g-tval').value=g.tval||'';
+  document.getElementById('g-ts').value=g.ts||'';
+  document.getElementById('g-te').value=g.te||'';
+  document.getElementById('mo-goal-title').textContent='編輯目標';
+  updGoalRepUI();openM('mo-goal');
+}
 document.getElementById('btn-save-goal').addEventListener('click',()=>{
   const name=document.getElementById('goal-name').value.trim();
   if(!name){snk('⚠️ 請填寫目標名稱');return;}
@@ -1464,7 +1611,9 @@ document.getElementById('mood-g').querySelectorAll('.moodbtn').forEach(b=>{
   b.addEventListener('click',()=>{document.getElementById('mood-g').querySelectorAll('.moodbtn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');selMood=parseInt(b.dataset.m);});
 });
 document.getElementById('btn-save-hlth').addEventListener('click',()=>{
-  hlogs[today()]={
+  const hDateEl=document.getElementById('h-date');
+  const ds=hDateEl?.value||today();
+  hlogs[ds]={
     wake:document.getElementById('h-wake').value,sleep:document.getElementById('h-sleep').value,
     sq:selSQ,weight:parseFloat(document.getElementById('h-weight').value)||null,
     water:parseInt(document.getElementById('h-water').value)||null,
@@ -1472,8 +1621,23 @@ document.getElementById('btn-save-hlth').addEventListener('click',()=>{
   };
   save();rdHealth();rdDash();snk('✅ 健康記錄已儲存');
 });
+document.getElementById('h-prev').addEventListener('click',()=>{
+  const el=document.getElementById('h-date');
+  const d=new Date((el.value||today())+'T00:00:00');
+  d.setDate(d.getDate()-1);el.value=d.toISOString().slice(0,10);rdHealth();
+});
+document.getElementById('h-next').addEventListener('click',()=>{
+  const el=document.getElementById('h-date');
+  const d=new Date((el.value||today())+'T00:00:00');
+  d.setDate(d.getDate()+1);
+  if(d.toISOString().slice(0,10)<=today()){el.value=d.toISOString().slice(0,10);rdHealth();}
+  else snk('⚠️ 不能選擇未來日期');
+});
+document.getElementById('h-date').addEventListener('change',()=>rdHealth());
 function rdHealth(){
-  const ds=today(),hl=hlogs[ds]||{};
+  const hDateEl=document.getElementById('h-date');
+  if(hDateEl&&!hDateEl.value)hDateEl.value=today();
+  const ds=hDateEl?.value||today(),hl=hlogs[ds]||{};
   document.getElementById('h-wake').value=hl.wake||'';
   document.getElementById('h-sleep').value=hl.sleep||'';
   document.getElementById('h-weight').value=hl.weight||'';
@@ -1486,7 +1650,8 @@ function rdHealth(){
   if(hl.weight)parts.push(`⚖️${hl.weight}kg`);
   if(hl.mood)parts.push(['','😫','😕','😐','😊','🤩'][hl.mood]);
   if(hl.wake)parts.push(`🌅${hl.wake}`);
-  document.getElementById('hlth-hdr').textContent=parts.length?parts.join(' · '):'今日健康狀況';
+  const isToday=ds===today();
+  document.getElementById('hlth-hdr').textContent=parts.length?parts.join(' · '):(isToday?'今日健康狀況':ds+' 健康記錄');
   // weight chart
   const last14=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);last14.push(d.toISOString().slice(0,10));}
   const ws=last14.map(d=>hlogs[d]?.weight||null);
@@ -1659,8 +1824,11 @@ function rdFin(){
     <div class="txi">
       <div class="txic" style="background:${CC[t.cat]||'#6b7280'}22">${cem(t.cat,t.tp)}</div>
       <div class="txinfo"><div class="txcat">${cname(t.cat,t.tp)}</div><div class="txn">${t.date}${t.wid?' · '+(wallets.find(w=>w.id===t.wid)?.em||'')+(wallets.find(w=>w.id===t.wid)?.name||''):''} ${t.note?' · '+esc(t.note):''}</div></div>
-      <div><div class="txamt ${t.tp==='income'?'inc':'exp'}">${t.tp==='income'?'+':'-'}${(cfg.cur||'HK$')}${t.amt.toLocaleString()}</div>
-      <button class="btn bg bs" style="margin-top:3px" onclick="delTx('${t.id}')">🗑️</button></div>
+      <div style="text-align:right"><div class="txamt ${t.tp==='income'?'inc':'exp'}">${t.tp==='income'?'+':'-'}${(cfg.cur||'HK$')}${t.amt.toLocaleString()}</div>
+      <div style="display:flex;gap:4px;margin-top:3px">
+        <button class="btn bg bs" onclick="editTx('${t.id}')">✏️</button>
+        <button class="btn bg bs" onclick="delTx('${t.id}')">🗑️</button>
+      </div></div>
     </div>`).join(''):`<div class="empty">未有交易記錄</div>`;
 }
 function drawPie(data){
@@ -1712,6 +1880,23 @@ document.getElementById('btn-save-tx').addEventListener('click',()=>{
   save();closeM('mo-tx');rdFin();rdDash();snk('✅ 已儲存');
 });
 function delTx(id){txs=txs.filter(t=>t.id!==id);save();rdFin();rdDash();snk('🗑️ 已刪除')}
+function editTx(id){
+  const t=txs.find(x=>x.id===id);if(!t)return;
+  document.getElementById('tx-id').value=id;
+  document.getElementById('tx-amt').value=t.amt;
+  document.getElementById('tx-date').value=t.date;
+  document.getElementById('tx-note').value=t.note||'';
+  selTp=t.tp;selTxWallet=t.wid||null;
+  document.getElementById('tx-type').querySelectorAll('.tag').forEach(x=>x.classList.toggle('sel',x.dataset.tp===t.tp));
+  rdTxCats(t.tp);
+  setTimeout(()=>{
+    document.getElementById('tx-cats').querySelectorAll('.tag').forEach(x=>x.classList.toggle('sel',x.dataset.c===t.cat));
+    selCat=t.cat;
+  },20);
+  rdWalletTags();
+  if(t.wid)setTimeout(()=>selWallet(t.wid),25);
+  openM('mo-tx');
+}
 document.getElementById('btn-csv').addEventListener('click',()=>{
   const ym=`${fY}-${String(fM+1).padStart(2,'0')}`;
   const mt=txs.filter(t=>t.date.startsWith(ym));
@@ -1752,7 +1937,7 @@ document.querySelectorAll('#theme-sw .sw2').forEach(s=>{
 });
 document.getElementById('btn-exp').addEventListener('click',()=>{
   const a=document.createElement('a');
-  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({evts,cds,goals,txs,bgts,cfg,sav,glogs,hlogs,notes,activities,wallets},null,2));
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({evts,cds,goals,txs,bgts,cfg,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs},null,2));
   a.download=`lp-backup-${today()}.json`;a.click();snk('📤 備份已下載');
 });
 document.getElementById('imp-file').addEventListener('change',function(){
@@ -1765,13 +1950,14 @@ document.getElementById('imp-file').addEventListener('change',function(){
       if(d.bgts)bgts=d.bgts;if(d.cfg)cfg=d.cfg;if(d.sav!==undefined)sav=d.sav;
       if(d.glogs)glogs=d.glogs;if(d.hlogs)hlogs=d.hlogs;if(d.notes)notes=d.notes;
       if(d.activities)activities=d.activities;if(d.wallets)wallets=d.wallets;
+      if(d.reminders)reminders=d.reminders;if(d.rlogs)rlogs=d.rlogs;
       save();applyTheme(cfg.theme);rerender();snk('✅ 匯入成功');
     }catch{snk('❌ 格式錯誤');}
   };r.readAsText(f);this.value='';
 });
 document.getElementById('btn-clr').addEventListener('click',()=>{
   if(!confirm('確定清除此帳戶所有資料？'))return;
-  evts=[];cds=[];goals=[];txs=[];bgts={};glogs={};hlogs={};notes=[];activities=[];sav=0;
+  evts=[];cds=[];goals=[];txs=[];bgts={};glogs={};hlogs={};notes=[];activities=[];sav=0;reminders=[];rlogs={};
   wallets=[{id:'cash',name:'現金',em:'💵',balance:0},{id:'credit',name:'信用卡',em:'💳',balance:0},{id:'octopus',name:'八達通',em:'🎫',balance:0}];
   save();rerender();snk('🗑️ 已清除');
 });
@@ -1847,6 +2033,125 @@ function rdWalletOverview(){
     </div>`;
   }).join('');
 }
+
+// ══════════════════════════════════════
+//  REMINDERS
+// ══════════════════════════════════════
+function isReminderDue(r,ds){
+  const d=new Date(ds+'T00:00:00');
+  if(r.rr==='daily')return true;
+  if(r.rr==='weekly')return (r.dow||[]).includes(d.getDay());
+  if(r.rr==='monthly')return d.getDate()===(r.mday||1);
+  if(r.rr==='yearly')return ds.slice(5)===(r.ydate||'01-01');
+  return false;
+}
+function remRepLabel(r){
+  const DN=['日','一','二','三','四','五','六'];
+  if(r.rr==='weekly')return '每週 '+(r.dow||[]).map(d=>'（'+DN[d]+'）').join('');
+  if(r.rr==='monthly')return `每月 ${r.mday} 日`;
+  if(r.rr==='yearly')return `每年 ${r.ydate}`;
+  return '每日';
+}
+function rdReminders(){
+  const td=today();
+  const dueToday=reminders.filter(r=>isReminderDue(r,td));
+  const undone=dueToday.filter(r=>!(rlogs[r.id]||[]).includes(td));
+  const cntEl=document.getElementById('rem-today-count');
+  if(cntEl)cntEl.textContent=dueToday.length?`${undone.length}/${dueToday.length} 未完成`:'';
+  document.getElementById('rem-today-list').innerHTML=dueToday.length?dueToday.map(r=>{
+    const done=(rlogs[r.id]||[]).includes(td);
+    return `<div class="ri${done?' done-today':''}">
+      <div class="rib">${r.ic||'🔔'}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">${esc(r.name)}</div>
+        <div style="font-size:11px;color:var(--tx2)">${remRepLabel(r)}${r.time?' ⏰'+r.time:''}${r.note?' · '+esc(r.note):''}</div>
+      </div>
+      <button class="task-done-btn${done?' done':''}" onclick="markRemDone('${r.id}')">${done?'✅完成':'標記完成'}</button>
+    </div>`;
+  }).join(''):`<div style="padding:10px;color:var(--tx2);font-size:13px">${dueToday.length===0?'今日無提醒事項 🎉':'今日所有提醒已完成 ✅'}</div>`;
+  document.getElementById('rem-all-list').innerHTML=reminders.length?reminders.map(r=>`
+    <div class="ri">
+      <div class="rib">${r.ic||'🔔'}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">${esc(r.name)}</div>
+        <div style="font-size:11px;color:var(--tx2)">${remRepLabel(r)}${r.time?' ⏰'+r.time:''}${r.note?' · '+esc(r.note):''}</div>
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="btn bg bs" onclick="openRemModal('${r.id}')">✏️</button>
+        <button class="btn bg bs" onclick="delRem('${r.id}')">🗑️</button>
+      </div>
+    </div>`).join(''):`<div class="empty"><span class="ei">🔔</span>未有提醒，按＋新增<div style="font-size:12px;margin-top:6px">例如：逢星期六剪指甲、每月1日繳費</div></div>`;
+}
+function markRemDone(rid){
+  if(!rlogs[rid])rlogs[rid]=[];
+  const td=today();
+  if(rlogs[rid].includes(td)){rlogs[rid]=rlogs[rid].filter(d=>d!==td);save();rdReminders();rdDash();snk('已取消完成');}
+  else{rlogs[rid].push(td);save();rdReminders();rdDash();snk('✅ 已完成！');}
+}
+function delRem(id){reminders=reminders.filter(r=>r.id!==id);delete rlogs[id];save();rdReminders();snk('🗑️ 已刪除')}
+
+let selRemIc='🔔',selRemRr='daily',selRemDow=[];
+function openRemModal(id){
+  document.getElementById('rem-id').value=id||'';
+  document.getElementById('rem-name').value='';
+  document.getElementById('rem-time').value='';
+  document.getElementById('rem-note').value='';
+  document.getElementById('rem-mday').value='';
+  document.getElementById('rem-ydate').value='';
+  document.getElementById('mo-rem-title').textContent=id?'編輯提醒':'新增提醒';
+  document.getElementById('rem-icons').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  document.getElementById('rem-rep-tabs').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  document.getElementById('rem-dow').querySelectorAll('.dp').forEach(p=>p.classList.remove('sel'));
+  selRemIc='🔔';selRemRr='daily';selRemDow=[];updRemRepUI();
+  if(id){
+    const r=reminders.find(x=>x.id===id);
+    if(r){
+      document.getElementById('rem-name').value=r.name||'';
+      document.getElementById('rem-time').value=r.time||'';
+      document.getElementById('rem-note').value=r.note||'';
+      selRemIc=r.ic||'🔔';selRemRr=r.rr||'daily';selRemDow=[...(r.dow||[])];
+      if(r.mday)document.getElementById('rem-mday').value=r.mday;
+      if(r.ydate)document.getElementById('rem-ydate').value=r.ydate;
+      document.getElementById('rem-icons').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.ri===selRemIc));
+      document.getElementById('rem-rep-tabs').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.rr===selRemRr));
+      document.getElementById('rem-dow').querySelectorAll('.dp').forEach(p=>p.classList.toggle('sel',selRemDow.includes(parseInt(p.dataset.rd))));
+      updRemRepUI();
+    }
+  }
+  openM('mo-rem');
+}
+function updRemRepUI(){
+  document.getElementById('rem-weekly').style.display=selRemRr==='weekly'?'block':'none';
+  document.getElementById('rem-monthly').style.display=selRemRr==='monthly'?'block':'none';
+  document.getElementById('rem-yearly').style.display=selRemRr==='yearly'?'block':'none';
+}
+document.getElementById('btn-add-rem').addEventListener('click',()=>openRemModal());
+document.getElementById('rem-icons').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{document.getElementById('rem-icons').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selRemIc=t.dataset.ri;});
+});
+document.getElementById('rem-rep-tabs').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{document.getElementById('rem-rep-tabs').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selRemRr=t.dataset.rr;updRemRepUI();});
+});
+document.getElementById('rem-dow').querySelectorAll('.dp').forEach(p=>{
+  p.addEventListener('click',()=>{
+    p.classList.toggle('sel');
+    const d=parseInt(p.dataset.rd);
+    if(p.classList.contains('sel')){if(!selRemDow.includes(d))selRemDow.push(d);}
+    else selRemDow=selRemDow.filter(x=>x!==d);
+  });
+});
+document.getElementById('btn-save-rem').addEventListener('click',()=>{
+  const name=document.getElementById('rem-name').value.trim();
+  if(!name){snk('⚠️ 請填寫提醒名稱');return;}
+  const id=document.getElementById('rem-id').value||uid();
+  reminders=reminders.filter(r=>r.id!==id);
+  reminders.push({id,name,ic:selRemIc,rr:selRemRr,dow:[...selRemDow],
+    mday:parseInt(document.getElementById('rem-mday').value)||null,
+    ydate:document.getElementById('rem-ydate').value||null,
+    time:document.getElementById('rem-time').value||null,
+    note:document.getElementById('rem-note').value.trim()||null});
+  save();closeM('mo-rem');rdReminders();rdDash();snk('✅ 提醒已儲存');
+});
 
 // ══════════════════════════════════════
 //  ACTIVITY LOG
@@ -1980,39 +2285,42 @@ document.getElementById('btn-save-act').addEventListener('click',()=>{
 });
 function rdActList(){
   const el=document.getElementById('act-list');
-  const td=today();
-  const todayActs=[...activities].filter(a=>a.date===td).sort((a,b)=>b.ts-a.ts);
-  if(!todayActs.length){el.innerHTML=`<div style="color:var(--tx2);font-size:13px;padding:8px 0">今日未有活動記錄</div>`;return;}
+  const sorted=[...activities].sort((a,b)=>b.date.localeCompare(a.date)||(b.ts-a.ts));
+  if(!sorted.length){el.innerHTML=`<div style="color:var(--tx2);font-size:13px;padding:8px 0">未有活動記錄，按「＋ 新增」開始</div>`;return;}
   const feelEm={'輕鬆':'😊','適中':'💪','辛苦':'😅','極限':'🔥'};
-  el.innerHTML=todayActs.map(act=>{
-    let detail='';
+  const td=today();
+  // group by date
+  const groups={};
+  sorted.forEach(a=>{if(!groups[a.date])groups[a.date]=[];groups[a.date].push(a);});
+  function actDetailHtml(act){
     if(WEIGHT_TYPES.includes(act.type)&&act.sets?.length){
-      detail=act.sets.map(s=>`<div class="act-row">
+      return act.sets.map(s=>`<div class="act-row">
         <span class="lbl">${esc(s.name)}</span>
         <span class="val">${s.sets?s.sets+'組':'-'}</span>
         <span class="val">${s.reps?s.reps+'次':'-'}</span>
         <span class="val">${s.weight?s.weight+'kg':'-'}</span>
       </div>`).join('');
-    } else if(CARDIO_TYPES.includes(act.type)&&act.sets?.length){
-      detail=act.sets.map(s=>`<div class="act-row-cardio">
+    }else if(CARDIO_TYPES.includes(act.type)&&act.sets?.length){
+      return act.sets.map(s=>`<div class="act-row-cardio">
         <span style="font-size:13px;font-weight:600">${esc(s.name||act.type)}</span>
         <span style="font-size:12px;color:var(--tx2);text-align:center">${s.dist?s.dist+'km':'-'}</span>
         <span style="font-size:12px;color:var(--tx2);text-align:center">${s.time?s.time+'分鐘':'-'}${s.dist&&s.time?` (${(s.time/s.dist).toFixed(1)}min/km)`:''}</span>
       </div>`).join('');
-    } else if(act.notes){
-      detail=`<div style="font-size:13px;color:var(--tx2);margin-top:4px">${esc(act.notes)}</div>`;
-    }
-    return `<div class="act-item">
+    }else if(act.notes){
+      return `<div style="font-size:13px;color:var(--tx2);margin-top:4px">${esc(act.notes)}</div>`;
+    }return '';
+  }
+  el.innerHTML=Object.entries(groups).map(([date,acts])=>`
+    <div style="font-size:11px;font-weight:700;color:var(--tx2);padding:10px 0 4px;border-top:1px solid var(--bdr)">${date===td?'📅 今日 '+td:date}</div>
+    ${acts.map(act=>`<div class="act-item">
       <div class="act-hdr">
         <span class="act-type-badge">${act.type}</span>
-        ${act.feel?`<span style="font-size:14px">${feelEm[act.feel]||''} ${act.feel}</span>`:''}
-        <span class="act-date">${act.date}</span>
+        ${act.feel?`<span style="font-size:13px">${feelEm[act.feel]||''} ${act.feel}</span>`:''}
         <button class="btn bg bs" onclick="openActModal('${act.id}')">✏️</button>
         <button class="btn bg bs" onclick="delAct('${act.id}')">🗑️</button>
       </div>
-      <div class="act-rows">${detail}</div>
-    </div>`;
-  }).join('');
+      <div class="act-rows">${actDetailHtml(act)}</div>
+    </div>`).join('')}`).join('');
 }
 function delAct(id){activities=activities.filter(a=>a.id!==id);save();rdHealth();snk('🗑️ 已刪除')}
 
@@ -2020,6 +2328,30 @@ function delAct(id){activities=activities.filter(a=>a.id!==id);save();rdHealth()
 //  INIT
 // ══════════════════════════════════════
 if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// ══════════════════════════════════════
+//  NOTIFICATIONS
+// ══════════════════════════════════════
+function initNotifications(){
+  if('Notification' in window && Notification.permission==='default'){
+    Notification.requestPermission();
+  }
+}
+function checkTodayNotifications(){
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  const td=today();
+  const dueRem=reminders.filter(r=>isReminderDue(r,td)&&!(rlogs[r.id]||[]).includes(td));
+  const dueGoals=goals.filter(g=>isDue(g,td)&&!(glogs[g.id]||[]).includes(td));
+  const items=[...dueRem.map(r=>r.ic+' '+r.name),...dueGoals.map(g=>g.ic+' '+g.name)];
+  if(items.length>0){
+    try{
+      new Notification('🔔 生活規劃家',{
+        body:'今日待辦 '+items.length+' 項：'+items.slice(0,3).join('、')+(items.length>3?'...':''),
+        icon:'./icon-192.png'
+      });
+    }catch(e){}
+  }
+}
 
 // Logout + manual sync buttons
 document.getElementById('btn-logout').addEventListener('click',()=>{
@@ -2049,6 +2381,7 @@ fauth.onAuthStateChanged(async user=>{
       appInited=true;
       applyTheme(cfg.theme||'#6C63FF');
       initCal();initFin();
+      setTimeout(()=>{initNotifications();checkTodayNotifications();},2000);
     } else {
       applyTheme(cfg.theme||'#6C63FF');
     }
