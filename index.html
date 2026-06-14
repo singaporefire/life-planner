@@ -665,9 +665,10 @@ canvas{max-width:100%;display:block}
   <div class="card"><div class="ct">預算概覽</div><div id="bgt-bars"></div></div>
   <div class="card"><div class="ct">分類統計</div><canvas id="pie" height="190"></canvas></div>
   <div class="card"><div class="ct">交易記錄</div><div id="tx-list"></div></div>
-  <div style="margin:11px 14px;display:flex;gap:8px">
+  <div style="margin:11px 14px;display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn bg bs" id="btn-csv" style="flex:1;justify-content:center">📥 匯出CSV</button>
     <button class="btn bg bs" id="btn-bgt" style="flex:1;justify-content:center">🎯 設定預算</button>
+    <button class="btn bg bs" id="btn-cats" style="flex:1;justify-content:center">🏷️ 管理分類</button>
   </div>
   <button class="fab" id="btn-add-tx">＋</button>
 </div>
@@ -1034,12 +1035,17 @@ canvas{max-width:100%;display:block}
       <div class="fg"><label class="fl">每期金額</label><input type="number" id="recur-amt" class="fc" placeholder="416.66" step="0.01"></div>
       <div class="fg"><label class="fl">週期</label>
         <select id="recur-period" class="fc">
-          <option value="monthly">每月</option>
           <option value="weekly">每週</option>
+          <option value="biweekly">每兩週</option>
+          <option value="monthly" selected>每月</option>
+          <option value="bimonthly">每兩個月</option>
+          <option value="quarterly">每季（三個月）</option>
+          <option value="halfyearly">每半年</option>
           <option value="yearly">每年</option>
         </select>
       </div>
     </div>
+    <div class="fg"><label class="fl">分類</label><select id="recur-cat" class="fc"></select></div>
     <div class="fr2">
       <div class="fg"><label class="fl">開始日期</label><input type="date" id="recur-start" class="fc"></div>
       <div class="fg"><label class="fl">分期數（留空=永久）</label><input type="number" id="recur-installments" class="fc" placeholder="24"></div>
@@ -1225,6 +1231,44 @@ canvas{max-width:100%;display:block}
   </div>
 </div>
 
+<!-- Category Management Modal -->
+<div class="mo" id="mo-cats">
+  <div class="mb">
+    <div class="mt">🏷️ 分類管理<button class="mc" data-close="mo-cats">✕</button></div>
+    <div class="tags" id="catmgr-type" style="margin-bottom:12px">
+      <span class="tag sel" data-ctp="expense">💸 支出分類</span>
+      <span class="tag" data-ctp="income">💰 收入分類</span>
+    </div>
+    <div id="catmgr-list" style="max-height:200px;overflow-y:auto;margin-bottom:10px"></div>
+    <div class="dvd"></div>
+    <label class="fl" style="margin-top:10px">新增自定義分類</label>
+    <div style="margin-top:6px;margin-bottom:8px">
+      <div style="font-size:11px;color:var(--tx2);margin-bottom:5px">選擇圖示</div>
+      <div class="tags" id="new-cat-em-pick" style="flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;gap:4px">
+        <span class="tag tsm sel" data-cem="📦">📦</span>
+        <span class="tag tsm" data-cem="🛡️">🛡️</span><span class="tag tsm" data-cem="🏥">🏥</span>
+        <span class="tag tsm" data-cem="🍽️">🍽️</span><span class="tag tsm" data-cem="💡">💡</span>
+        <span class="tag tsm" data-cem="📱">📱</span><span class="tag tsm" data-cem="👤">👤</span>
+        <span class="tag tsm" data-cem="🐾">🐾</span><span class="tag tsm" data-cem="🚗">🚗</span>
+        <span class="tag tsm" data-cem="✈️">✈️</span><span class="tag tsm" data-cem="⛽">⛽</span>
+        <span class="tag tsm" data-cem="🎂">🎂</span><span class="tag tsm" data-cem="💈">💈</span>
+        <span class="tag tsm" data-cem="🔧">🔧</span><span class="tag tsm" data-cem="🎓">🎓</span>
+        <span class="tag tsm" data-cem="🌿">🌿</span><span class="tag tsm" data-cem="🎵">🎵</span>
+        <span class="tag tsm" data-cem="🎬">🎬</span><span class="tag tsm" data-cem="🍺">🍺</span>
+        <span class="tag tsm" data-cem="☕">☕</span><span class="tag tsm" data-cem="🏢">🏢</span>
+        <span class="tag tsm" data-cem="🎁">🎁</span><span class="tag tsm" data-cem="💰">💰</span>
+        <span class="tag tsm" data-cem="🎉">🎉</span><span class="tag tsm" data-cem="🏋️">🏋️</span>
+        <span class="tag tsm" data-cem="🏠">🏠</span><span class="tag tsm" data-cem="💊">💊</span>
+        <span class="tag tsm" data-cem="📮">📮</span><span class="tag tsm" data-cem="🎲">🎲</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="new-cat-name" class="fc" placeholder="分類名稱（如：保險、水電費）" style="flex:1">
+      <button class="btn bp bs" id="btn-add-cat">新增</button>
+    </div>
+  </div>
+</div>
+
 <div class="snk" id="snk"></div>
 
 <script>
@@ -1343,7 +1387,7 @@ const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 // ══════════════════════════════════════
 //  DATA
 // ══════════════════════════════════════
-let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs;
+let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs,txCatsE,txCatsI;
 function loadData(){
   cfg        =DB.get('cfg',{lang:'zh',cur:'HK$',theme:'#6C63FF'});
   evts       =DB.get('evts',[]);
@@ -1365,6 +1409,11 @@ function loadData(){
   rlogs      =DB.get('rlogs',{});
   flogs      =DB.get('flogs',{});
   nutGoal    =DB.get('nutGoal',{goalType:'maintain',targetWeight:null,height:null,age:null,gender:'M',activityLevel:1.55,calOverride:null});
+  txCatsE    =DB.get('txCatsE',DEFAULT_CE);
+  txCatsI    =DB.get('txCatsI',DEFAULT_CI);
+  // Migrate old data: ensure new built-in cats are merged in
+  DEFAULT_CE.forEach(d=>{if(!txCatsE.find(c=>c.id===d.id))txCatsE.splice(txCatsE.length-1,0,d);});
+  DEFAULT_CI.forEach(d=>{if(!txCatsI.find(c=>c.id===d.id))txCatsI.splice(txCatsI.length-1,0,d);});
   exLib      =DB.get('exLib',[
     {id:'bp',name:'臥推 Bench Press',catId:'wt'},{id:'row',name:'俯身划船 Bent Row',catId:'wt'},
     {id:'squat',name:'深蹲 Squat',catId:'wt'},{id:'ohp',name:'肩推 OHP',catId:'wt'},
@@ -1391,6 +1440,7 @@ function save(){
   DB.set('acts',activities);DB.set('wallets',wallets);
   DB.set('reminders',reminders);DB.set('rlogs',rlogs);
   DB.set('flogs',flogs);DB.set('nutGoal',nutGoal);
+  DB.set('txCatsE',txCatsE);DB.set('txCatsI',txCatsI);
   DB.set('exLib',exLib);DB.set('recurTxs',recurTxs);
   syncToCloud();
 }
@@ -2089,15 +2139,56 @@ document.getElementById('btn-save-note').addEventListener('click',()=>{
 // ══════════════════════════════════════
 let fY,fM,selTp='expense',selCat='food';
 function initFin(){const n=new Date();fY=n.getFullYear();fM=n.getMonth();}
-const CE=[{id:'food',em:'🍔',n:{zh:'飲食',en:'Food'}},{id:'transport',em:'🚇',n:{zh:'交通',en:'Transport'}},
-  {id:'shopping',em:'🛍️',n:{zh:'購物',en:'Shopping'}},{id:'entertain',em:'🎮',n:{zh:'娛樂',en:'Entertainment'}},
-  {id:'health',em:'💊',n:{zh:'醫療',en:'Health'}},{id:'edu',em:'📚',n:{zh:'教育',en:'Education'}},
-  {id:'housing',em:'🏠',n:{zh:'住屋',en:'Housing'}},{id:'other',em:'📦',n:{zh:'其他',en:'Other'}}];
-const CI=[{id:'salary',em:'💼',n:{zh:'薪金',en:'Salary'}},{id:'freelance',em:'💻',n:{zh:'接案',en:'Freelance'}},
-  {id:'invest',em:'📈',n:{zh:'投資',en:'Investment'}},{id:'gift',em:'🎁',n:{zh:'禮金',en:'Gift'}},{id:'other',em:'💵',n:{zh:'其他',en:'Other'}}];
-const CC={food:'#f59e0b',transport:'#3b82f6',shopping:'#ec4899',entertain:'#8b5cf6',health:'#ef4444',edu:'#6366f1',housing:'#14b8a6',other:'#6b7280',salary:'#22c55e',freelance:'#10b981',invest:'#0ea5e9',gift:'#f472b6'};
-function cname(id,tp){const a=tp==='income'?CI:CE;const c=a.find(x=>x.id===id);return c?c.em+' '+c.n[cfg.lang||'zh']:id}
-function cem(id,tp){return(tp==='income'?CI:CE).find(x=>x.id===id)?.em||'📦'}
+// Default category lists (stored in txCatsE / txCatsI)
+const DEFAULT_CE=[
+  {id:'food',em:'🍔',name:'飲食',builtIn:true},
+  {id:'dining',em:'🍽️',name:'外出用餐',builtIn:true},
+  {id:'transport',em:'🚇',name:'交通',builtIn:true},
+  {id:'shopping',em:'🛍️',name:'購物',builtIn:true},
+  {id:'entertain',em:'🎮',name:'娛樂',builtIn:true},
+  {id:'health',em:'💊',name:'醫療',builtIn:true},
+  {id:'insurance',em:'🛡️',name:'保險',builtIn:true},
+  {id:'edu',em:'📚',name:'教育',builtIn:true},
+  {id:'housing',em:'🏠',name:'住屋/租金',builtIn:true},
+  {id:'utility',em:'💡',name:'水電費',builtIn:true},
+  {id:'phone',em:'📱',name:'電話費',builtIn:true},
+  {id:'personal',em:'👤',name:'個人護理',builtIn:true},
+  {id:'pet',em:'🐾',name:'寵物',builtIn:true},
+  {id:'other',em:'📦',name:'其他',builtIn:true}
+];
+const DEFAULT_CI=[
+  {id:'salary',em:'💼',name:'薪金',builtIn:true},
+  {id:'freelance',em:'💻',name:'接案/兼職',builtIn:true},
+  {id:'invest',em:'📈',name:'投資',builtIn:true},
+  {id:'gift',em:'🎁',name:'禮金',builtIn:true},
+  {id:'bonus',em:'🎉',name:'獎金',builtIn:true},
+  {id:'rental',em:'🏢',name:'租金收入',builtIn:true},
+  {id:'subsidy',em:'🏛️',name:'補貼/津貼',builtIn:true},
+  {id:'other',em:'💵',name:'其他',builtIn:true}
+];
+// Color palette for categories
+const CC_BASE={food:'#f59e0b',dining:'#e11d48',transport:'#3b82f6',shopping:'#ec4899',
+  entertain:'#8b5cf6',health:'#ef4444',insurance:'#f97316',edu:'#6366f1',
+  housing:'#14b8a6',utility:'#06b6d4',phone:'#a78bfa',personal:'#d946ef',
+  pet:'#78716c',other:'#6b7280',salary:'#22c55e',freelance:'#10b981',
+  invest:'#0ea5e9',gift:'#f472b6',bonus:'#84cc16',rental:'#0891b2',
+  subsidy:'#7c3aed'};
+const CAT_PALETTE=['#f97316','#a855f7','#06b6d4','#84cc16','#f43f5e','#0891b2','#14b8a6','#8b5cf6','#ec4899','#f59e0b'];
+function catColor(id){
+  if(CC_BASE[id])return CC_BASE[id];
+  // deterministic color from id hash
+  let h=0;for(let i=0;i<id.length;i++)h=(h*31+id.charCodeAt(i))%CAT_PALETTE.length;
+  return CAT_PALETTE[Math.abs(h)];
+}
+function getCats(tp){return tp==='income'?txCatsI:txCatsE;}
+function cname(id,tp){
+  const c=getCats(tp).find(x=>x.id===id);
+  if(!c){// backward compat: try old CE/CI structure
+    const fallback=DEFAULT_CE.concat(DEFAULT_CI).find(x=>x.id===id);
+    return fallback?fallback.em+' '+fallback.name:id;}
+  return c.em+' '+c.name;
+}
+function cem(id,tp){return getCats(tp).find(x=>x.id===id)?.em||'📦'}
 function rdFin(){
   const ym=`${fY}-${String(fM+1).padStart(2,'0')}`;
   const lbl=new Date(fY,fM,1).toLocaleDateString(cfg.lang==='zh'?'zh-TW':'en-US',{year:'numeric',month:'long'});
@@ -2116,12 +2207,12 @@ function rdFin(){
   rdRecurTxs();
   // budget
   const bEl=document.getElementById('bgt-bars');
-  const bc=CE.filter(c=>bgts[c.id]);
+  const bc=txCatsE.filter(c=>bgts[c.id]);
   bEl.innerHTML=bc.length?bc.map(c=>{
     const sp=mt.filter(t=>t.tp==='expense'&&t.cat===c.id).reduce((s,t)=>s+t.amt,0);
     const b=bgts[c.id],pct=Math.min(100,Math.round(sp/b*100));
     const col=pct>90?'#ef4444':pct>70?'#f59e0b':'#22c55e';
-    return `<div class="bbi"><div class="bbl"><span>${c.em} ${c.n[cfg.lang||'zh']}</span><span>${(cfg.cur||'HK$')}${sp.toLocaleString()} / ${(cfg.cur||'HK$')}${b.toLocaleString()}</span></div>
+    return `<div class="bbi"><div class="bbl"><span>${c.em} ${c.name}</span><span>${(cfg.cur||'HK$')}${sp.toLocaleString()} / ${(cfg.cur||'HK$')}${b.toLocaleString()}</span></div>
     <div class="bbr"><div class="bbf" style="width:${pct}%;background:${col}"></div></div></div>`;
   }).join(''):`<div style="color:var(--tx2);font-size:13px">按「設定預算」建立月度預算</div>`;
   // pie
@@ -2131,7 +2222,7 @@ function rdFin(){
   const sl=[...mt].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,40);
   document.getElementById('tx-list').innerHTML=sl.length?sl.map(t=>`
     <div class="txi">
-      <div class="txic" style="background:${CC[t.cat]||'#6b7280'}22">${cem(t.cat,t.tp)}</div>
+      <div class="txic" style="background:${catColor(t.cat)}22">${cem(t.cat,t.tp)}</div>
       <div class="txinfo"><div class="txcat">${cname(t.cat,t.tp)}</div><div class="txn">${t.date}${t.wid?' · '+(wallets.find(w=>w.id===t.wid)?.em||'')+(wallets.find(w=>w.id===t.wid)?.name||''):''} ${t.note?' · '+esc(t.note):''}</div></div>
       <div style="text-align:right"><div class="txamt ${t.tp==='income'?'inc':'exp'}">${t.tp==='income'?'+':'-'}${(cfg.cur||'HK$')}${t.amt.toLocaleString()}</div>
       <div style="display:flex;gap:4px;margin-top:3px">
@@ -2150,11 +2241,11 @@ function drawPie(data){
   en.forEach(([cat,val])=>{
     const sl=val/total*Math.PI*2;
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+sl);ctx.closePath();
-    ctx.fillStyle=CC[cat]||'#6b7280';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();a+=sl;
+    ctx.fillStyle=catColor(cat);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();a+=sl;
   });
   let ly=14;
   en.slice(0,7).forEach(([cat,val])=>{
-    ctx.fillStyle=CC[cat]||'#6b7280';ctx.fillRect(185,ly-9,13,13);
+    ctx.fillStyle=catColor(cat);ctx.fillRect(185,ly-9,13,13);
     ctx.fillStyle='#1a1a2e';ctx.font='11px sans-serif';ctx.textAlign='left';
     ctx.fillText(`${cname(cat,'expense')} ${Math.round(val/total*100)}%`,202,ly);ly+=21;
   });
@@ -2162,9 +2253,9 @@ function drawPie(data){
 document.getElementById('fin-prev').addEventListener('click',()=>{fM--;if(fM<0){fM=11;fY--;}rdFin()});
 document.getElementById('fin-next').addEventListener('click',()=>{fM++;if(fM>11){fM=0;fY++;}rdFin()});
 function rdTxCats(tp){
-  const cats=tp==='income'?CI:CE;
+  const cats=getCats(tp);
   const el=document.getElementById('tx-cats');
-  el.innerHTML=cats.map((c,i)=>`<span class="tag ${(selCat===c.id||(i===0&&!cats.find(x=>x.id===selCat)))?'sel':''}" data-c="${c.id}">${c.em} ${c.n[cfg.lang||'zh']}</span>`).join('');
+  el.innerHTML=cats.map((c,i)=>`<span class="tag ${(selCat===c.id||(i===0&&!cats.find(x=>x.id===selCat)))?'sel':''}" data-c="${c.id}">${c.em} ${c.name}</span>`).join('');
   el.querySelectorAll('.tag').forEach(t=>{t.addEventListener('click',()=>{el.querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selCat=t.dataset.c;});});
   selCat=el.querySelector('.tag.sel')?.dataset.c||cats[0].id;
 }
@@ -2215,8 +2306,8 @@ document.getElementById('btn-csv').addEventListener('click',()=>{
   a.download=`finance-${ym}.csv`;a.click();snk('📥 CSV 已下載');
 });
 document.getElementById('btn-bgt').addEventListener('click',()=>{
-  document.getElementById('bgt-inputs').innerHTML=CE.map(c=>`
-    <div class="fg"><label class="fl">${c.em} ${c.n[cfg.lang||'zh']}</label>
+  document.getElementById('bgt-inputs').innerHTML=txCatsE.map(c=>`
+    <div class="fg"><label class="fl">${c.em} ${c.name}</label>
     <input type="number" class="fc" data-cat="${c.id}" value="${bgts[c.id]||''}" placeholder="月度預算金額..."></div>`).join('');
   openM('mo-bgt');
 });
@@ -2226,6 +2317,56 @@ document.getElementById('btn-save-bgt').addEventListener('click',()=>{
   });
   save();closeM('mo-bgt');rdFin();snk('✅ 預算已儲存');
 });
+
+// ══════════════════════════════════════
+//  CATEGORY MANAGEMENT
+// ══════════════════════════════════════
+let selCatMgrType='expense', newCatEm='📦';
+document.getElementById('btn-cats').addEventListener('click',()=>{
+  selCatMgrType='expense';
+  document.getElementById('catmgr-type').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.ctp==='expense'));
+  rdCatMgr();openM('mo-cats');
+});
+document.getElementById('catmgr-type').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('catmgr-type').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.add('sel');selCatMgrType=t.dataset.ctp;rdCatMgr();
+  });
+});
+document.getElementById('new-cat-em-pick').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.getElementById('new-cat-em-pick').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
+    t.classList.add('sel');newCatEm=t.dataset.cem;
+  });
+});
+function rdCatMgr(){
+  const cats=selCatMgrType==='income'?txCatsI:txCatsE;
+  document.getElementById('catmgr-list').innerHTML=cats.map(c=>`
+    <div class="hli" style="padding:9px 0;align-items:center">
+      <div class="hlb" style="font-size:18px;background:${catColor(c.id)}22;flex-shrink:0;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center">${c.em}</div>
+      <div class="hlinfo" style="flex:1"><div class="hlval">${esc(c.name)}</div>${c.builtIn?'<div style="font-size:10px;color:var(--tx2)">預設分類</div>':''}</div>
+      ${c.builtIn?'':'<button class="btn bd bs" onclick="delTxCat(\''+c.id+'\',\''+selCatMgrType+'\')" style="flex-shrink:0">🗑️</button>'}
+    </div>`).join('');
+}
+document.getElementById('btn-add-cat').addEventListener('click',()=>{
+  const name=document.getElementById('new-cat-name').value.trim();
+  if(!name){snk('⚠️ 請填寫分類名稱');return;}
+  const id='custom_'+uid();
+  if(selCatMgrType==='income'){txCatsI.splice(txCatsI.length-1,0,{id,em:newCatEm,name});}
+  else{txCatsE.splice(txCatsE.length-1,0,{id,em:newCatEm,name});}
+  document.getElementById('new-cat-name').value='';
+  // reset emoji pick to default
+  document.getElementById('new-cat-em-pick').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  newCatEm='📦';
+  save();rdCatMgr();rdFin();snk('✅ 分類已新增');
+});
+function delTxCat(id,tp){
+  if(tp==='income'){txCatsI=txCatsI.filter(c=>c.id!==id);}
+  else{txCatsE=txCatsE.filter(c=>c.id!==id);}
+  // remove any budget for this category
+  delete bgts[id];
+  save();rdCatMgr();rdFin();snk('🗑️ 已刪除');
+}
 
 // ══════════════════════════════════════
 //  SETTINGS
@@ -2246,7 +2387,7 @@ document.querySelectorAll('#theme-sw .sw2').forEach(s=>{
 });
 document.getElementById('btn-exp').addEventListener('click',()=>{
   const a=document.createElement('a');
-  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({evts,cds,goals,txs,bgts,cfg,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs},null,2));
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({evts,cds,goals,txs,bgts,cfg,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs,txCatsE,txCatsI},null,2));
   a.download=`lp-backup-${today()}.json`;a.click();snk('📤 備份已下載');
 });
 document.getElementById('imp-file').addEventListener('change',function(){
@@ -2262,13 +2403,14 @@ document.getElementById('imp-file').addEventListener('change',function(){
       if(d.reminders)reminders=d.reminders;if(d.rlogs)rlogs=d.rlogs;
       if(d.flogs)flogs=d.flogs;if(d.nutGoal)nutGoal=d.nutGoal;
       if(d.exLib)exLib=d.exLib;if(d.recurTxs)recurTxs=d.recurTxs;
+      if(d.txCatsE)txCatsE=d.txCatsE;if(d.txCatsI)txCatsI=d.txCatsI;
       save();applyTheme(cfg.theme);rerender();snk('✅ 匯入成功');
     }catch{snk('❌ 格式錯誤');}
   };r.readAsText(f);this.value='';
 });
 document.getElementById('btn-clr').addEventListener('click',()=>{
   if(!confirm('確定清除此帳戶所有資料？'))return;
-  evts=[];cds=[];goals=[];txs=[];bgts={};glogs={};hlogs={};notes=[];activities=[];sav=0;reminders=[];rlogs={};flogs={};nutGoal={goalType:'maintain',targetWeight:null,height:null,age:null,gender:'M',activityLevel:1.55,calOverride:null};recurTxs=[];
+  evts=[];cds=[];goals=[];txs=[];bgts={};glogs={};hlogs={};notes=[];activities=[];sav=0;reminders=[];rlogs={};flogs={};nutGoal={goalType:'maintain',targetWeight:null,height:null,age:null,gender:'M',activityLevel:1.55,calOverride:null};recurTxs=[];txCatsE=[...DEFAULT_CE];txCatsI=[...DEFAULT_CI];
   wallets=[{id:'cash',name:'現金',em:'💵',balance:0},{id:'credit',name:'信用卡',em:'💳',balance:0},{id:'octopus',name:'八達通',em:'🎫',balance:0}];
   save();rerender();snk('🗑️ 已清除');
 });
@@ -2349,6 +2491,12 @@ function rdWalletOverview(){
 //  RECURRING TRANSACTIONS
 // ══════════════════════════════════════
 let selRecurTp='expense';
+function rdRecurCatSel(tp, selectedCat){
+  const cats=getCats(tp);
+  const sel=document.getElementById('recur-cat');
+  if(!sel)return;
+  sel.innerHTML=cats.map(c=>`<option value="${c.id}"${selectedCat===c.id?' selected':''}>${c.em} ${c.name}</option>`).join('');
+}
 function openRecurModal(id){
   document.getElementById('recur-id').value=id||'';
   document.getElementById('recur-name-inp').value='';
@@ -2360,6 +2508,7 @@ function openRecurModal(id){
   document.getElementById('mo-recur-title').textContent=id?'編輯定期項目':'新增定期支出/收入';
   selRecurTp='expense';
   document.getElementById('recur-type-tags').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.rtp==='expense'));
+  rdRecurCatSel('expense','other');
   if(id){
     const r=recurTxs.find(x=>x.id===id);
     if(r){
@@ -2371,6 +2520,7 @@ function openRecurModal(id){
       document.getElementById('recur-period').value=r.period||'monthly';
       selRecurTp=r.tp||'expense';
       document.getElementById('recur-type-tags').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.rtp===selRecurTp));
+      rdRecurCatSel(selRecurTp, r.cat||(selRecurTp==='income'?'salary':'other'));
     }
   }
   openM('mo-recur');
@@ -2379,6 +2529,7 @@ document.getElementById('recur-type-tags').querySelectorAll('.tag').forEach(t=>{
   t.addEventListener('click',()=>{
     document.getElementById('recur-type-tags').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
     t.classList.add('sel');selRecurTp=t.dataset.rtp;
+    rdRecurCatSel(selRecurTp, selRecurTp==='income'?'salary':'other');
   });
 });
 document.getElementById('btn-save-recur').addEventListener('click',()=>{
@@ -2388,9 +2539,10 @@ document.getElementById('btn-save-recur').addEventListener('click',()=>{
   if(!name||!amt||!startDate){snk('⚠️ 請填寫名稱、金額和開始日期');return;}
   const id=document.getElementById('recur-id').value||uid();
   const existing=recurTxs.find(x=>x.id===id);
+  const cat=document.getElementById('recur-cat').value||(selRecurTp==='income'?'salary':'other');
   recurTxs=recurTxs.filter(r=>r.id!==id);
   recurTxs.push({
-    id,name,tp:selRecurTp,amt,
+    id,name,tp:selRecurTp,cat,amt,
     period:document.getElementById('recur-period').value||'monthly',
     startDate,
     installments:parseInt(document.getElementById('recur-installments').value)||null,
@@ -2403,9 +2555,14 @@ document.getElementById('btn-save-recur').addEventListener('click',()=>{
 function nextPayDate(r){
   if(!r.startDate)return null;
   const start=new Date(r.startDate+'T00:00:00');
-  if(r.period==='monthly'){const d=new Date(start);d.setMonth(d.getMonth()+(r.paidCount||0));return d.toISOString().slice(0,10);}
-  if(r.period==='weekly'){const d=new Date(start);d.setDate(d.getDate()+(r.paidCount||0)*7);return d.toISOString().slice(0,10);}
-  if(r.period==='yearly'){const d=new Date(start);d.setFullYear(d.getFullYear()+(r.paidCount||0));return d.toISOString().slice(0,10);}
+  const n=r.paidCount||0;
+  if(r.period==='weekly'){const d=new Date(start);d.setDate(d.getDate()+n*7);return d.toISOString().slice(0,10);}
+  if(r.period==='biweekly'){const d=new Date(start);d.setDate(d.getDate()+n*14);return d.toISOString().slice(0,10);}
+  if(r.period==='monthly'){const d=new Date(start);d.setMonth(d.getMonth()+n);return d.toISOString().slice(0,10);}
+  if(r.period==='bimonthly'){const d=new Date(start);d.setMonth(d.getMonth()+n*2);return d.toISOString().slice(0,10);}
+  if(r.period==='quarterly'){const d=new Date(start);d.setMonth(d.getMonth()+n*3);return d.toISOString().slice(0,10);}
+  if(r.period==='halfyearly'){const d=new Date(start);d.setMonth(d.getMonth()+n*6);return d.toISOString().slice(0,10);}
+  if(r.period==='yearly'){const d=new Date(start);d.setFullYear(d.getFullYear()+n);return d.toISOString().slice(0,10);}
   return null;
 }
 function isCurrentPeriodPaid(r){
@@ -2424,7 +2581,7 @@ function markRecurPaid(id){
   } else {
     r.paidDates.push(nextDate);
     r.paidCount=(r.paidCount||0)+1;
-    const cat=r.tp==='income'?'salary':'other';
+    const cat=r.cat||(r.tp==='income'?'salary':'other');
     txs.push({id:uid(),tp:r.tp,amt:r.amt,cat,date:nextDate,
       note:r.name+(r.note?' ('+r.note+')':''),recurId:id,wid:null});
     save();rdFin();rdDash();snk('✅ 已記錄付款並新增交易');
@@ -2440,7 +2597,7 @@ function rdRecurTxs(){
     el.innerHTML=`<div style="color:var(--tx2);font-size:13px;padding:6px 0">尚未設定定期項目<br><span style="font-size:11px;opacity:.7">例如：月租、分期付款、薪金</span></div>`;return;
   }
   const cur=cfg.cur||'HK$';
-  const periodLbl={monthly:'每月',weekly:'每週',yearly:'每年'};
+  const periodLbl={weekly:'每週',biweekly:'每兩週',monthly:'每月',bimonthly:'每兩個月',quarterly:'每季',halfyearly:'每半年',yearly:'每年'};
   el.innerHTML=recurTxs.map(r=>{
     const remaining=r.installments!=null?r.installments-(r.paidCount||0):null;
     const pct=r.installments?Math.round((r.paidCount||0)/r.installments*100):null;
@@ -2450,10 +2607,10 @@ function rdRecurTxs(){
     const done=r.installments&&remaining<=0;
     return `<div class="recur-item">
       <div class="recur-top">
-        <div class="recur-icon" style="background:${r.tp==='income'?'#22c55e22':'#ef444422'}">${r.tp==='income'?'💰':'💳'}</div>
+        <div class="recur-icon" style="background:${catColor(r.cat||(r.tp==='income'?'salary':'other'))}22">${cem(r.cat||(r.tp==='income'?'salary':'other'),r.tp)}</div>
         <div style="flex:1;min-width:0">
           <div class="recur-name">${esc(r.name)}${done?' <span style="font-size:10px;color:var(--ok)">✅完成</span>':''}</div>
-          <div class="recur-meta">${periodLbl[r.period]||'每月'} ${cur}${r.amt.toLocaleString(undefined,{maximumFractionDigits:2})}${r.installments?` · 已付 ${r.paidCount||0}/${r.installments} 期`:''}${r.note?' · '+esc(r.note):''}</div>
+          <div class="recur-meta">${periodLbl[r.period]||'每月'} ${cur}${r.amt.toLocaleString(undefined,{maximumFractionDigits:2})} · ${cname(r.cat||(r.tp==='income'?'salary':'other'),r.tp)}${r.installments?` · 已付 ${r.paidCount||0}/${r.installments} 期`:''}${r.note?' · '+esc(r.note):''}</div>
         </div>
         ${!done?`<button class="recur-pay-btn${paid?' paid':''}" onclick="markRecurPaid('${r.id}')">${paid?'✅ 已付':'記錄付款'}</button>`:''}
       </div>
