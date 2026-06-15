@@ -582,6 +582,13 @@ canvas{max-width:100%;display:block}
     </div>
   </div>
   <div class="card">
+    <div class="ct" style="display:flex;justify-content:space-between;align-items:center">
+      <span>✅ 自定義追蹤</span>
+      <button class="btn bp bs" onclick="openHTAdd()">＋ 新增</button>
+    </div>
+    <div id="ht-list"></div>
+  </div>
+  <div class="card">
     <div class="ct">健康記錄歷史</div>
     <div id="hlth-hist"></div>
   </div>
@@ -805,6 +812,15 @@ canvas{max-width:100%;display:block}
         <option value="weekly">每週</option><option value="monthly">每月</option><option value="yearly">每年</option>
       </select>
     </div>
+    <div class="fg"><label class="fl">提醒（可多選）</label>
+      <div class="tags" id="evt-rems">
+        <span class="tag" data-off="0">當日</span>
+        <span class="tag" data-off="1">前1天</span>
+        <span class="tag" data-off="3">前3天</span>
+        <span class="tag" data-off="7">前1週</span>
+      </div>
+      <div style="font-size:10px;color:var(--tx2);margin-top:4px">⚠️ 需開啟通知權限，App 開啟時於提醒日通知</div>
+    </div>
     <div class="fg"><label class="fl">顏色</label>
       <div class="tags" id="evt-colors">
         <span class="tag sel" data-c="#6C63FF">🟣 紫</span><span class="tag" data-c="#0ea5e9">🔵 藍</span>
@@ -823,6 +839,13 @@ canvas{max-width:100%;display:block}
     <input type="hidden" id="cd-id">
     <div class="fg"><label class="fl">事件名稱</label><input type="text" id="cd-name" class="fc"></div>
     <div class="fg"><label class="fl">目標日期</label><input type="date" id="cd-date" class="fc"></div>
+    <div class="fg"><label class="fl">重複</label>
+      <div class="tags" id="cd-reps">
+        <span class="tag sel" data-rep="none">不重複</span>
+        <span class="tag" data-rep="yearly">每年</span>
+        <span class="tag" data-rep="monthly">每月</span>
+      </div>
+    </div>
     <div class="fg"><label class="fl">圖示</label>
       <div class="tags" id="cd-icons">
         <span class="tag sel" data-ic="🎂">🎂</span><span class="tag" data-ic="✈️">✈️</span>
@@ -833,6 +856,36 @@ canvas{max-width:100%;display:block}
     </div>
     <div class="fg"><label class="fl">備注</label><input type="text" id="cd-note" class="fc" placeholder="選填"></div>
     <button class="btn bp bb" id="btn-save-cd">儲存</button>
+  </div>
+</div>
+
+<!-- Custom Health Tracker -->
+<div class="mo" id="mo-ht">
+  <div class="mb">
+    <div class="mt"><span id="mo-ht-title">新增追蹤</span><button class="mc" data-close="mo-ht">✕</button></div>
+    <input type="hidden" id="ht-id">
+    <div class="fg"><label class="fl">名稱</label><input type="text" id="ht-name" class="fc" placeholder="e.g. 大便記錄、吃保健品"></div>
+    <div class="fg"><label class="fl">圖示</label>
+      <div class="tags" id="ht-icons">
+        <span class="tag sel" data-ic="✅">✅</span><span class="tag" data-ic="💩">💩</span>
+        <span class="tag" data-ic="💊">💊</span><span class="tag" data-ic="💧">💧</span>
+        <span class="tag" data-ic="🍵">🍵</span><span class="tag" data-ic="🥗">🥗</span>
+        <span class="tag" data-ic="😴">😴</span><span class="tag" data-ic="🧴">🧴</span>
+        <span class="tag" data-ic="🚽">🚽</span><span class="tag" data-ic="❤️">❤️</span>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">頻率</label>
+      <div class="tags" id="ht-freqs">
+        <span class="tag sel" data-fr="daily">每日一次</span>
+        <span class="tag" data-fr="times">每日多次</span>
+      </div>
+    </div>
+    <div class="fg" id="ht-times-opts" style="display:none">
+      <label class="fl">每日目標次數</label>
+      <input type="number" id="ht-perday" class="fc" min="1" max="24" placeholder="e.g. 4" value="4">
+      <div style="font-size:10px;color:var(--tx2);margin-top:4px">例如每 4 小時一次（清醒約 16 小時 ≈ 4 次）。每次完成按 ＋ 記一次。</div>
+    </div>
+    <button class="btn bp bb" id="btn-save-ht">儲存</button>
   </div>
 </div>
 
@@ -1520,7 +1573,7 @@ const DEFAULT_CI=[
 //  Bump this number whenever data structure changes.
 //  Add a migration block in runMigrations() for each version step.
 // ══════════════════════════════════════
-const SCHEMA_VER = 2;
+const SCHEMA_VER = 3;
 function runMigrations(){
   const v = DB.get('_sv', 0);
   if(v >= SCHEMA_VER) return;
@@ -1558,8 +1611,23 @@ function runMigrations(){
     DB.set('nutGoal', ng);
   }
 
+  // ── v2 → v3: countdown recurrence, event reminders, custom health trackers ──
+  if(v < 3){
+    // countdowns: backfill rep='none'
+    const _cds = DB.get('cds',[]);
+    _cds.forEach(c=>{ if(!c.rep) c.rep='none'; });
+    if(_cds.length) DB.set('cds', _cds);
+    // events: backfill rem=[]
+    const _evts = DB.get('evts',[]);
+    _evts.forEach(e=>{ if(!Array.isArray(e.rem)) e.rem=[]; });
+    if(_evts.length) DB.set('evts', _evts);
+    // custom health trackers: initialise empty collections if absent
+    if(DB.get('htrackers',null)===null) DB.set('htrackers',[]);
+    if(DB.get('htlogs',null)===null)    DB.set('htlogs',{});
+  }
+
   // ── future versions: add migration blocks here ─────────────────────
-  // if(v < 3){ ... }
+  // if(v < 4){ ... }
 
   DB.set('_sv', SCHEMA_VER);
 }
@@ -1567,7 +1635,7 @@ function runMigrations(){
 // ══════════════════════════════════════
 //  DATA
 // ══════════════════════════════════════
-let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs,txCatsE,txCatsI,goalCats;
+let cfg,evts,cds,goals,txs,bgts,sav,glogs,hlogs,notes,activities,wallets,reminders,rlogs,flogs,nutGoal,exLib,recurTxs,txCatsE,txCatsI,goalCats,htrackers,htlogs;
 function loadData(){
   // Re-read account state — loadFromCloud() may have updated lp_cur_acc / lp_accs in localStorage
   accounts = raw('accs', [{id:'default',name:'我的帳戶',emoji:'👤'}]);
@@ -1633,6 +1701,8 @@ function loadData(){
   goalCats   =DB.get('goalCats',DEFAULT_GOAL_CATS);
   // Migrate: ensure built-in goal cats are always present
   DEFAULT_GOAL_CATS.forEach(d=>{if(!goalCats.find(c=>c.id===d.id))goalCats.push(d);});
+  htrackers  =DB.get('htrackers',[]);
+  htlogs     =DB.get('htlogs',{});
 }
 function save(){
   DB.set('cfg',cfg);DB.set('evts',evts);DB.set('cds',cds);DB.set('goals',goals);
@@ -1644,6 +1714,7 @@ function save(){
   DB.set('txCatsE',txCatsE);DB.set('txCatsI',txCatsI);
   DB.set('exLib',exLib);DB.set('recurTxs',recurTxs);
   DB.set('goalCats',goalCats);
+  DB.set('htrackers',htrackers);DB.set('htlogs',htlogs);
   _setLocalMod(); // stamp local modification time before uploading
   syncToCloud();
 }
@@ -1778,13 +1849,14 @@ function rdDash(){
     </div>`:
     `<a href="#" onclick="go('health');return false" style="color:var(--P);font-size:13px">👉 記錄今日健康</a>`;
   // countdowns
-  const sorted=[...cds].sort((a,b)=>Math.abs(daysLeft(a.date))-Math.abs(daysLeft(b.date))).slice(0,3);
+  const sorted=[...cds].sort((a,b)=>Math.abs(daysLeft(cdNextDate(a)))-Math.abs(daysLeft(cdNextDate(b)))).slice(0,3);
   document.getElementById('d-cd').innerHTML=sorted.length?sorted.map(c=>{
-    const d=daysLeft(c.date);
+    const nd=cdNextDate(c);
+    const d=daysLeft(nd);
     return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bdr)">
       <span style="font-size:20px">${c.ic||'⭐'}</span>
       <div style="flex:1"><div style="font-size:13px;font-weight:600">${esc(c.name)}</div>
-      <div style="font-size:11px;color:var(--tx2)">${c.date}</div></div>
+      <div style="font-size:11px;color:var(--tx2)">${nd}${(c.rep&&c.rep!=='none')?' · '+_repLabel[c.rep]:''}</div></div>
       <span style="font-weight:800;color:var(--P);font-size:14px">${d===0?'今日🎉':d>0?d+'天':Math.abs(d)+'天前'}</span>
     </div>`;
   }).join(''):`<div class="empty" style="padding:12px">⏳ 未有倒數事件</div>`;
@@ -1842,6 +1914,28 @@ const _cn=new Date();
 let cY=_cn.getFullYear(),cM=_cn.getMonth(),cSel=today();
 function initCal(){const n=new Date();cY=n.getFullYear();cM=n.getMonth();cSel=today();}
 function daysLeft(ds){const t=new Date(ds+'T00:00:00'),n=new Date();n.setHours(0,0,0,0);return Math.round((t-n)/86400000)}
+// Local (timezone-safe) YYYY-MM-DD formatter — avoids toISOString() UTC off-by-one
+function _ymd(dt){return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;}
+// For recurring countdowns, return the NEXT upcoming occurrence date string.
+// rep: 'none' (one-off) | 'yearly' (e.g. birthday) | 'monthly'
+function cdNextDate(c){
+  if(!c||!c.date||!c.rep||c.rep==='none')return c?c.date:'';
+  const base=new Date(c.date+'T00:00:00');
+  if(isNaN(base))return c.date;
+  const n=new Date();n.setHours(0,0,0,0);
+  if(c.rep==='yearly'){
+    let nx=new Date(n.getFullYear(),base.getMonth(),base.getDate());
+    if(nx<n)nx=new Date(n.getFullYear()+1,base.getMonth(),base.getDate());
+    return _ymd(nx);
+  }
+  if(c.rep==='monthly'){
+    let nx=new Date(n.getFullYear(),n.getMonth(),base.getDate());
+    if(nx<n)nx=new Date(n.getFullYear(),n.getMonth()+1,base.getDate());
+    return _ymd(nx);
+  }
+  return c.date;
+}
+const _repLabel={none:'',yearly:'🔁每年',monthly:'🔁每月'};
 function getEvts(ds){
   const d=new Date(ds+'T00:00:00');
   return evts.filter(e=>{
@@ -1894,7 +1988,7 @@ function rdCalDay(){
   document.getElementById('cal-day-evts').innerHTML=e.length?e.map(ev=>`
     <div class="li"><div class="ldot" style="background:${ev.col||'var(--P)'}"></div>
     <div class="linfo"><div class="ltitle">${esc(ev.name)}</div>
-    <div class="lmeta">${ev.time||''} ${ev.rep&&ev.rep!=='none'?'🔁':''} ${ev.note?'· '+esc(ev.note):''}</div></div>
+    <div class="lmeta">${ev.time||''} ${ev.rep&&ev.rep!=='none'?'🔁':''} ${ev.rem&&ev.rem.length?'🔔':''} ${ev.note?'· '+esc(ev.note):''}</div></div>
     <div class="lact"><button class="btn bg bs" onclick="editEvt('${ev.id}')">✏️</button>
     <button class="btn bg bs" onclick="delEvt('${ev.id}')">🗑️</button></div></div>`).join(''):
     `<div style="padding:10px;color:var(--tx2);font-size:13px">今日無行程</div>`;
@@ -1902,9 +1996,12 @@ function rdCalDay(){
 document.getElementById('cal-prev').addEventListener('click',()=>{cM--;if(cM<0){cM=11;cY--;}rdCal()});
 document.getElementById('cal-next').addEventListener('click',()=>{cM++;if(cM>11){cM=0;cY++;}rdCal()});
 
-let selEvtCol='#6C63FF';
+let selEvtCol='#6C63FF',selEvtRems=[];
 document.getElementById('evt-colors').querySelectorAll('.tag').forEach(t=>{
   t.addEventListener('click',()=>{document.getElementById('evt-colors').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selEvtCol=t.dataset.c;});
+});
+document.getElementById('evt-rems').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{t.classList.toggle('sel');selEvtRems=[...document.getElementById('evt-rems').querySelectorAll('.tag.sel')].map(x=>parseInt(x.dataset.off));});
 });
 document.getElementById('btn-add-evt').addEventListener('click',()=>{
   document.getElementById('evt-id').value='';document.getElementById('evt-name').value='';
@@ -1912,7 +2009,8 @@ document.getElementById('btn-add-evt').addEventListener('click',()=>{
   document.getElementById('evt-note').value='';document.getElementById('evt-rep').value='none';
   document.getElementById('mo-evt-title').textContent='新增行程';
   document.getElementById('evt-colors').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
-  selEvtCol='#6C63FF';openM('mo-evt');
+  document.getElementById('evt-rems').querySelectorAll('.tag').forEach(t=>t.classList.remove('sel'));
+  selEvtCol='#6C63FF';selEvtRems=[];openM('mo-evt');
 });
 function editEvt(id){
   const e=evts.find(x=>x.id===id);if(!e)return;
@@ -1921,6 +2019,8 @@ function editEvt(id){
   document.getElementById('evt-note').value=e.note||'';document.getElementById('evt-rep').value=e.rep||'none';
   document.getElementById('mo-evt-title').textContent='編輯行程';
   document.getElementById('evt-colors').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.c===e.col));
+  selEvtRems=Array.isArray(e.rem)?e.rem.slice():[];
+  document.getElementById('evt-rems').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',selEvtRems.includes(parseInt(t.dataset.off))));
   selEvtCol=e.col||'#6C63FF';openM('mo-evt');
 }
 function delEvt(id){evts=evts.filter(x=>x.id!==id);save();rdCal();rdDash();snk('🗑️ 已刪除')}
@@ -1930,7 +2030,7 @@ document.getElementById('btn-save-evt').addEventListener('click',()=>{
   if(!name||!date){snk('⚠️ 請填寫名稱和日期');return;}
   const id=document.getElementById('evt-id').value||uid();
   const ev={id,name,date,time:document.getElementById('evt-time').value,
-    rep:document.getElementById('evt-rep').value,col:selEvtCol,note:document.getElementById('evt-note').value.trim()};
+    rep:document.getElementById('evt-rep').value,col:selEvtCol,note:document.getElementById('evt-note').value.trim(),rem:selEvtRems.slice()};
   const i=evts.findIndex(x=>x.id===id);if(i>=0)evts[i]=ev;else evts.push(ev);
   save();closeM('mo-evt');rdCal();rdDash();snk('✅ 已儲存');
 });
@@ -1938,28 +2038,34 @@ document.getElementById('btn-save-evt').addEventListener('click',()=>{
 // ══════════════════════════════════════
 //  COUNTDOWNS
 // ══════════════════════════════════════
-let selCdIc='🎂';
+let selCdIc='🎂',selCdRep='none';
 document.getElementById('cd-icons').querySelectorAll('.tag').forEach(t=>{
   t.addEventListener('click',()=>{document.getElementById('cd-icons').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selCdIc=t.dataset.ic;});
+});
+document.getElementById('cd-reps').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{document.getElementById('cd-reps').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selCdRep=t.dataset.rep;});
 });
 document.getElementById('btn-add-cd').addEventListener('click',()=>{
   ['cd-id','cd-name','cd-date','cd-note'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('cd-icons').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  document.getElementById('cd-reps').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.rep==='none'));
   document.getElementById('mo-cd-title').textContent='新增倒數';
-  selCdIc='🎂';openM('mo-cd');
+  selCdIc='🎂';selCdRep='none';openM('mo-cd');
 });
 function rdCds(){
-  const s=[...cds].sort((a,b)=>Math.abs(daysLeft(a.date))-Math.abs(daysLeft(b.date)));
+  const s=[...cds].sort((a,b)=>Math.abs(daysLeft(cdNextDate(a)))-Math.abs(daysLeft(cdNextDate(b))));
   document.getElementById('cd-list').innerHTML=s.length?s.map(c=>{
-    const d=daysLeft(c.date);
+    const nd=cdNextDate(c);
+    const d=daysLeft(nd);
     const bg=d>=0?'var(--PL)':'var(--sur2)',fg=d>=0?'var(--P)':'var(--tx2)';
+    const repBadge=(c.rep&&c.rep!=='none')?` · ${_repLabel[c.rep]}`:'';
     return `<div class="cdi">
       <div class="cdb" style="background:${bg};color:${fg}">
         <div class="num">${d===0?'🎉':Math.abs(d)}</div>
         <div class="unit">${d>0?'天':d===0?'今日':'天前'}</div>
       </div>
       <div style="flex:1"><div style="font-size:14px;font-weight:600">${c.ic||'⭐'} ${esc(c.name)}</div>
-      <div style="font-size:11px;color:var(--tx2)">${c.date}${c.note?' · '+esc(c.note):''}</div></div>
+      <div style="font-size:11px;color:var(--tx2)">${nd}${repBadge}${c.note?' · '+esc(c.note):''}</div></div>
       <div style="display:flex;gap:5px">
         <button class="btn bg bs" onclick="openCdEdit('${c.id}')">✏️</button>
         <button class="btn bg bs" onclick="delCd('${c.id}')">🗑️</button>
@@ -1976,6 +2082,8 @@ function openCdEdit(id){
   document.getElementById('cd-note').value=c.note||'';
   selCdIc=c.ic||'🎂';
   document.getElementById('cd-icons').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.ic===selCdIc));
+  selCdRep=c.rep||'none';
+  document.getElementById('cd-reps').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.rep===selCdRep));
   document.getElementById('mo-cd-title').textContent='編輯倒數';
   openM('mo-cd');
 }
@@ -1984,7 +2092,7 @@ document.getElementById('btn-save-cd').addEventListener('click',()=>{
   if(!name||!date){snk('⚠️ 請填寫名稱和日期');return;}
   const id=document.getElementById('cd-id').value||uid();
   cds=cds.filter(c=>c.id!==id);
-  cds.push({id,name,date,ic:selCdIc,note:document.getElementById('cd-note').value.trim()});
+  cds.push({id,name,date,ic:selCdIc,rep:selCdRep,note:document.getElementById('cd-note').value.trim()});
   document.getElementById('mo-cd-title').textContent='新增倒數';
   save();closeM('mo-cd');rdCds();rdDash();snk('✅ 已儲存');
 });
@@ -2306,6 +2414,8 @@ function rdHealth(){
   rdFoodLog(ds);
   // activity list
   rdActList();
+  // custom trackers
+  rdHTrackers(ds);
   // history
   const sorted=Object.entries(hlogs).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,30);
   const mEm=['','😫','😕','😐','😊','🤩'],mLbl=['','很差','欠佳','一般','良好','極佳'],qLbl=['','很差','欠佳','一般','良好','極佳'];
@@ -2327,6 +2437,116 @@ function sleepDur(w,s){
   const dur=wMin-sMin;
   return dur>0&&dur<1440?`${Math.floor(dur/60)}h${dur%60?dur%60+'m':''}`:'';}
 function delHlth(d){delete hlogs[d];save();rdHealth();snk('🗑️ 已刪除')}
+
+// ══════════════════════════════════════
+//  CUSTOM HEALTH TRACKERS / 自定義追蹤
+// ══════════════════════════════════════
+let selHtIc='✅',selHtFr='daily';
+function htActiveDate(){return document.getElementById('h-date')?.value||today();}
+function htCount(id,ds){const m=htlogs[id]||{};return m[ds]||0;}
+function htDoneDates(id){const m=htlogs[id]||{};return Object.keys(m).filter(d=>(m[d]||0)>0);}
+function rdHTrackers(ds){
+  ds=ds||htActiveDate();
+  const wrap=document.getElementById('ht-list');if(!wrap)return;
+  if(!htrackers.length){wrap.innerHTML=`<div class="empty" style="padding:14px"><span class="ei">✅</span>未有自定義追蹤，按＋新增<br><span style="font-size:11px;color:var(--tx2)">例如：每日大便記錄、每 4 小時吃保健品</span></div>`;return;}
+  wrap.innerHTML=htrackers.map(t=>{
+    const cnt=htCount(t.id,ds),streak=calcStreak(htDoneDates(t.id)),total=htDoneDates(t.id).length;
+    if(t.freq==='times'){
+      const tgt=t.perDay||1,pct=Math.min(100,Math.round(cnt/tgt*100));
+      return `<div class="gi">
+        <div class="gtop">
+          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+            <span style="font-size:21px">${t.ic||'✅'}</span>
+            <div style="min-width:0">
+              <div class="gname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</div>
+              <div style="font-size:10px;color:var(--tx2)">每日 ${tgt} 次 · 🔥${streak}天</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px">
+            <button class="btn bg bs" onclick="htAdd('${t.id}',-1)">−</button>
+            <span style="font-weight:700;min-width:40px;text-align:center;color:${cnt>=tgt?'var(--P)':'var(--tx)'}">${cnt}/${tgt}</span>
+            <button class="btn bp bs" onclick="htAdd('${t.id}',1)">＋</button>
+            <button class="btn bg bs" onclick="editHT('${t.id}')">✏️</button>
+            <button class="btn bg bs" onclick="delHT('${t.id}')">🗑️</button>
+          </div>
+        </div>
+        <div class="pb" style="margin-top:8px"><div class="pf" style="width:${pct}%"></div></div></div>`;
+    }
+    const done=cnt>0;
+    return `<div class="gi">
+      <div class="gtop">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+          <span style="font-size:21px">${t.ic||'✅'}</span>
+          <div style="min-width:0">
+            <div class="gname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</div>
+            <div style="font-size:10px;color:var(--tx2)">每日一次 · 🔥${streak}天連續 · 共 ${total} 次</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px">
+          <button class="ckb ${done?'done':''}" onclick="htToggle('${t.id}')">${done?'✓':'打卡'}</button>
+          <button class="btn bg bs" onclick="editHT('${t.id}')">✏️</button>
+          <button class="btn bg bs" onclick="delHT('${t.id}')">🗑️</button>
+        </div>
+      </div></div>`;
+  }).join('');
+}
+function htAdd(id,delta){
+  const ds=htActiveDate();
+  if(!htlogs[id])htlogs[id]={};
+  const v=Math.max(0,(htlogs[id][ds]||0)+delta);
+  if(v===0)delete htlogs[id][ds];else htlogs[id][ds]=v;
+  save();rdHTrackers(ds);
+  if(delta>0)snk('✅ 已記錄 +1');
+}
+function htToggle(id){
+  const ds=htActiveDate();
+  if(!htlogs[id])htlogs[id]={};
+  if((htlogs[id][ds]||0)>0)delete htlogs[id][ds];else htlogs[id][ds]=1;
+  save();rdHTrackers(ds);
+  snk(htlogs[id][ds]?'✅ 已打卡 🔥':'已取消');
+}
+document.getElementById('ht-icons').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{document.getElementById('ht-icons').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selHtIc=t.dataset.ic;});
+});
+document.getElementById('ht-freqs').querySelectorAll('.tag').forEach(t=>{
+  t.addEventListener('click',()=>{document.getElementById('ht-freqs').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selHtFr=t.dataset.fr;document.getElementById('ht-times-opts').style.display=selHtFr==='times'?'block':'none';});
+});
+function openHTAdd(){
+  document.getElementById('ht-id').value='';
+  document.getElementById('ht-name').value='';
+  document.getElementById('ht-perday').value='4';
+  document.getElementById('mo-ht-title').textContent='新增追蹤';
+  document.getElementById('ht-icons').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
+  document.getElementById('ht-freqs').querySelectorAll('.tag').forEach(t=>t.classList.toggle('sel',t.dataset.fr==='daily'));
+  document.getElementById('ht-times-opts').style.display='none';
+  selHtIc='✅';selHtFr='daily';openM('mo-ht');
+}
+function editHT(id){
+  const t=htrackers.find(x=>x.id===id);if(!t)return;
+  document.getElementById('ht-id').value=id;
+  document.getElementById('ht-name').value=t.name;
+  document.getElementById('ht-perday').value=t.perDay||4;
+  document.getElementById('mo-ht-title').textContent='編輯追蹤';
+  selHtIc=t.ic||'✅';selHtFr=t.freq||'daily';
+  document.getElementById('ht-icons').querySelectorAll('.tag').forEach(x=>x.classList.toggle('sel',x.dataset.ic===selHtIc));
+  document.getElementById('ht-freqs').querySelectorAll('.tag').forEach(x=>x.classList.toggle('sel',x.dataset.fr===selHtFr));
+  document.getElementById('ht-times-opts').style.display=selHtFr==='times'?'block':'none';
+  openM('mo-ht');
+}
+function delHT(id){
+  htrackers=htrackers.filter(x=>x.id!==id);delete htlogs[id];
+  save();rdHTrackers();snk('🗑️ 已刪除');
+}
+document.getElementById('btn-save-ht').addEventListener('click',()=>{
+  const name=document.getElementById('ht-name').value.trim();
+  if(!name){snk('⚠️ 請輸入名稱');return;}
+  const id=document.getElementById('ht-id').value||uid();
+  let perDay=parseInt(document.getElementById('ht-perday').value)||1;
+  perDay=Math.min(24,Math.max(1,perDay));
+  const t={id,name,ic:selHtIc,freq:selHtFr,perDay};
+  const i=htrackers.findIndex(x=>x.id===id);if(i>=0)htrackers[i]=t;else htrackers.push(t);
+  save();closeM('mo-ht');rdHTrackers();snk('✅ 已儲存');
+});
 
 // ══════════════════════════════════════
 //  NOTES / 筆記
@@ -3701,12 +3921,44 @@ function initNotifications(){
     Notification.requestPermission();
   }
 }
+// Does an event occur on a given date, accounting for recurrence?
+function evtOccursOn(ev,ds){
+  if(!ev||!ev.date)return false;
+  const base=new Date(ev.date+'T00:00:00'),tgt=new Date(ds+'T00:00:00');
+  if(isNaN(base)||isNaN(tgt)||tgt<base)return false;
+  const rep=ev.rep||'none';
+  if(rep==='none')return ev.date===ds;
+  if(rep==='daily')return true;
+  if(rep==='weekly')return base.getDay()===tgt.getDay();
+  if(rep==='monthly')return base.getDate()===tgt.getDate();
+  if(rep==='yearly')return base.getMonth()===tgt.getMonth()&&base.getDate()===tgt.getDate();
+  return false;
+}
+// Per-device event-notification dedup log (NOT synced — no lp_ prefix)
+function _enLog(){try{return JSON.parse(localStorage.getItem('enLog')||'{}')}catch(_){return{}}}
+function _enLogSave(o){try{localStorage.setItem('enLog',JSON.stringify(o))}catch(_){}}
 function checkTodayNotifications(){
   if(!('Notification' in window)||Notification.permission!=='granted')return;
   const td=today();
   const dueRem=reminders.filter(r=>isReminderDue(r,td)&&!(rlogs[r.id]||[]).includes(td));
   const dueGoals=goals.filter(g=>isDue(g,td)&&!(glogs[g.id]||[]).includes(td));
-  const items=[...dueRem.map(r=>r.ic+' '+r.name),...dueGoals.map(g=>g.ic+' '+g.name)];
+  // Event reminders: fire `off` days before each occurrence (per-device dedup)
+  let enl=_enLog();Object.keys(enl).forEach(k=>{if(enl[k]!==td)delete enl[k];});
+  const dueEvts=[];
+  evts.forEach(ev=>{
+    if(!Array.isArray(ev.rem)||!ev.rem.length)return;
+    ev.rem.forEach(off=>{
+      const tgt=_ymd(new Date(new Date(td+'T00:00:00').getTime()+off*86400000));
+      if(evtOccursOn(ev,tgt)){
+        const key=ev.id+'_'+off;
+        if(enl[key]!==td){dueEvts.push('📅 '+(off===0?'今日':off+'天後')+' '+ev.name);enl[key]=td;}
+      }
+    });
+  });
+  _enLogSave(enl);
+  // Daily custom trackers not yet checked-in today (times-trackers excluded — sub-daily can't be reliably timed in a PWA)
+  const dueHT=htrackers.filter(t=>t.freq!=='times'&&((htlogs[t.id]||{})[td]||0)===0).map(t=>(t.ic||'✅')+' '+t.name);
+  const items=[...dueRem.map(r=>r.ic+' '+r.name),...dueGoals.map(g=>g.ic+' '+g.name),...dueEvts,...dueHT];
   if(items.length>0){
     try{
       new Notification('🔔 生活規劃家',{
@@ -3736,7 +3988,7 @@ document.getElementById('btn-sync-now').addEventListener('click',async()=>{
   // force=true: always apply server data (lets users pull changes from another device)
   await loadFromCloud(true);
   loadData();
-  rdDash();updateAccHdr();
+  rerender();updateAccHdr();   // re-render the CURRENT tab, not just the dashboard
   // also upload the freshly-merged local state
   save();
   snk('✅ 已從雲端更新！');
@@ -3779,7 +4031,7 @@ fauth.onAuthStateChanged(async user=>{
     } else {
       applyTheme(cfg.theme||'#6C63FF');
     }
-    rdDash();updateAccHdr();
+    rerender();updateAccHdr();   // refresh whatever tab is showing after cloud load
   } else {
     const authBox=document.querySelector('.auth-box');
     if(authBox) authBox.style.opacity='1';
