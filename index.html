@@ -890,6 +890,20 @@ canvas{max-width:100%;display:block}
   </div>
 </div>
 
+<!-- Custom Health Tracker — Review / Trend -->
+<div class="mo" id="mo-htr">
+  <div class="mb">
+    <div class="mt"><span id="htr-title">追蹤檢討</span><button class="mc" data-close="mo-htr">✕</button></div>
+    <div id="htr-stats" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px"></div>
+    <div class="ct" style="font-size:13px;display:flex;justify-content:space-between;align-items:center">
+      <span>📊 近 14 天趨勢</span><span id="htr-legend" style="font-size:10px;color:var(--tx2);font-weight:400"></span>
+    </div>
+    <canvas id="htr-chart" height="140" style="margin-top:6px;width:100%"></canvas>
+    <div class="ct" style="font-size:13px;margin-top:6px">🗓️ 最近記錄</div>
+    <div id="htr-hist" style="margin-top:4px"></div>
+  </div>
+</div>
+
 <!-- Goal -->
 <div class="mo" id="mo-goal">
   <div class="mb">
@@ -905,7 +919,10 @@ canvas{max-width:100%;display:block}
         <span class="tag" data-ic="🧘">🧘</span><span class="tag" data-ic="💤">💤</span>
       </div>
     </div>
-    <div class="fg"><label class="fl">分類標籤</label>
+    <div class="fg">
+      <label class="fl" style="display:flex;justify-content:space-between;align-items:center">分類標籤
+        <button type="button" class="btn bg bs" id="btn-goal-cats-modal" style="font-size:11px;padding:3px 8px">⚙️ 新增 / 刪除分類</button>
+      </label>
       <div class="tags" id="goal-cat-tags" style="flex-wrap:wrap"></div>
     </div>
     <div class="fg"><label class="fl">重複週期</label>
@@ -2344,6 +2361,14 @@ document.getElementById('btn-save-goal').addEventListener('click',()=>{
 // ══════════════════════════════════════
 let newGoalCatEm='📌';
 document.getElementById('btn-goal-cats').addEventListener('click',()=>{rdGoalCatMgr();openM('mo-goal-cats');});
+// Same manager, reachable directly from the goal edit modal (where the user picks a category)
+document.getElementById('btn-goal-cats-modal').addEventListener('click',()=>{rdGoalCatMgr();openM('mo-goal-cats');});
+// Keep the goal modal's category picker in sync after add/delete in the manager
+function _refreshGoalCatPickerIfOpen(){
+  if(!document.getElementById('mo-goal').classList.contains('on'))return;
+  const keep=goalCats.find(c=>c.id===selGoalCatTag)?selGoalCatTag:(goalCats[0]?.id||'other');
+  rdGoalCatTags(keep);
+}
 document.getElementById('goalcat-em-pick').querySelectorAll('.tag').forEach(t=>{
   t.addEventListener('click',()=>{
     document.getElementById('goalcat-em-pick').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));
@@ -2365,13 +2390,13 @@ document.getElementById('btn-add-goalcat').addEventListener('click',()=>{
   document.getElementById('new-goalcat-name').value='';
   document.getElementById('goalcat-em-pick').querySelectorAll('.tag').forEach((t,i)=>t.classList.toggle('sel',i===0));
   newGoalCatEm='📌';
-  save();rdGoalCatMgr();rdGoalCatBar();snk('✅ 分類已新增');
+  save();rdGoalCatMgr();rdGoalCatBar();_refreshGoalCatPickerIfOpen();snk('✅ 分類已新增');
 });
 function delGoalCat(id){
   goalCats=goalCats.filter(c=>c.id!==id);
   // goals in deleted category fall back to 'other'
   goals.forEach(g=>{if(g.catId===id)g.catId='other';});
-  save();rdGoalCatMgr();rdGoalCatBar();rdGoals();snk('🗑️ 已刪除');
+  save();rdGoalCatMgr();rdGoalCatBar();rdGoals();_refreshGoalCatPickerIfOpen();snk('🗑️ 已刪除');
 }
 
 // ══════════════════════════════════════
@@ -2513,11 +2538,11 @@ function rdHTrackers(ds){
       const tgt=t.perDay||1,pct=Math.min(100,Math.round(cnt/tgt*100));
       return `<div class="gi">
         <div class="gtop">
-          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer" onclick="openHTReview('${t.id}')">
             <span style="font-size:21px">${t.ic||'✅'}</span>
             <div style="min-width:0">
               <div class="gname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</div>
-              <div style="font-size:10px;color:var(--tx2)">每日 ${tgt} 次 · 🔥${streak}天</div>
+              <div style="font-size:10px;color:var(--tx2)">每日 ${tgt} 次 · 🔥${streak}天 · 📊檢討</div>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px">
@@ -2533,11 +2558,11 @@ function rdHTrackers(ds){
     const done=cnt>0;
     return `<div class="gi">
       <div class="gtop">
-        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer" onclick="openHTReview('${t.id}')">
           <span style="font-size:21px">${t.ic||'✅'}</span>
           <div style="min-width:0">
             <div class="gname" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</div>
-            <div style="font-size:10px;color:var(--tx2)">每日一次 · 🔥${streak}天連續 · 共 ${total} 次</div>
+            <div style="font-size:10px;color:var(--tx2)">每日一次 · 🔥${streak}天 · 共 ${total} 次 · 📊檢討</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px">
@@ -2562,6 +2587,72 @@ function htToggle(id){
   if((htlogs[id][ds]||0)>0)delete htlogs[id][ds];else htlogs[id][ds]=1;
   save();rdHTrackers(ds);
   snk(htlogs[id][ds]?'✅ 已打卡 🔥':'已取消');
+}
+// Longest consecutive-day run ever recorded
+function calcBestStreak(dates){
+  if(!dates||!dates.length)return 0;
+  const s=[...new Set(dates)].sort();
+  let best=1,cur=1;
+  for(let i=1;i<s.length;i++){
+    const d0=new Date(s[i-1]+'T00:00:00'),d1=new Date(s[i]+'T00:00:00');
+    if(Math.round((d1-d0)/86400000)===1){cur++;if(cur>best)best=cur;}else cur=1;
+  }
+  return best;
+}
+// Review modal: stats + 14-day trend bar chart + recent history
+function openHTReview(id){
+  const t=htrackers.find(x=>x.id===id);if(!t)return;
+  const m=htlogs[id]||{};
+  const doneDates=Object.keys(m).filter(d=>(m[d]||0)>0);
+  const streak=calcStreak(doneDates),best=calcBestStreak(doneDates);
+  const totalChecks=Object.values(m).reduce((s,v)=>s+(v||0),0),totalDays=doneDates.length;
+  const last30=[];for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);last30.push(_ymd(d));}
+  let rate;
+  if(t.freq==='times'){const tgt=t.perDay||1,sum30=last30.reduce((s,d)=>s+(m[d]||0),0);rate=Math.min(100,Math.round(sum30/(30*tgt)*100));}
+  else{const done30=last30.filter(d=>(m[d]||0)>0).length;rate=Math.round(done30/30*100);}
+  document.getElementById('htr-title').textContent=(t.ic||'✅')+' '+t.name;
+  const card=(lbl,val,col)=>`<div style="background:var(--sur2);border-radius:12px;padding:10px 12px"><div style="font-size:11px;color:var(--tx2)">${lbl}</div><div style="font-size:20px;font-weight:800;color:${col||'var(--tx)'}">${val}</div></div>`;
+  document.getElementById('htr-stats').innerHTML=
+    card('🔥 目前連續',streak+' 天','var(--P)')+
+    card('🏆 最長連續',best+' 天')+
+    card(t.freq==='times'?'✅ 總完成次數':'✅ 完成天數',(t.freq==='times'?totalChecks+' 次':totalDays+' 天'))+
+    card('📊 近30天完成率',rate+'%',rate>=70?'var(--ok)':(rate>=40?'var(--warn)':'var(--bad)'));
+  document.getElementById('htr-legend').textContent=t.freq==='times'?('目標 '+(t.perDay||1)+' 次/日'):'每日一次';
+  const hist=doneDates.sort((a,b)=>b.localeCompare(a)).slice(0,14);
+  document.getElementById('htr-hist').innerHTML=hist.length?hist.map(d=>`<div style="display:flex;justify-content:space-between;padding:5px 2px;border-bottom:1px solid var(--bdr);font-size:13px"><span>${d}</span><span style="font-weight:700;color:var(--P)">${t.freq==='times'?(m[d]+' 次'):'✓ 完成'}</span></div>`).join(''):`<div style="font-size:12px;color:var(--tx2);padding:6px">尚未有記錄</div>`;
+  openM('mo-htr');
+  requestAnimationFrame(()=>drawHTBars(document.getElementById('htr-chart'),t));
+}
+function drawHTBars(c,t){
+  if(!c)return;
+  const m=htlogs[t.id]||{};
+  const days=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(_ymd(d));}
+  const counts=days.map(d=>m[d]||0);
+  const tgt=t.freq==='times'?(t.perDay||1):1;
+  const maxV=Math.max(tgt,...counts,1);
+  const W=c.offsetWidth||(c.parentElement?c.parentElement.offsetWidth-32:320)||320;
+  c.width=W;c.height=140;
+  const ctx=c.getContext('2d');
+  const p={t:14,b:18,l:6,r:6},cw=W-p.l-p.r,ch=140-p.t-p.b;
+  ctx.clearRect(0,0,W,140);
+  const themeCol=cfg.theme||'#6C63FF';
+  const gap=cw/days.length,barW=Math.min(22,gap*0.62);
+  days.forEach((d,i)=>{
+    const v=counts[i],x=p.l+i*gap+(gap-barW)/2;
+    if(v>0){
+      const bh=Math.max(4,ch*v/maxV),y=p.t+ch-bh;
+      ctx.fillStyle=v>=tgt?themeCol:themeCol+'80';
+      if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,y,barW,bh,[4,4,0,0]);ctx.fill();}
+      else ctx.fillRect(x,y,barW,bh);
+      ctx.fillStyle='#6b7280';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText(v,x+barW/2,y-2);
+    }else{ctx.fillStyle='#e5e7eb';ctx.fillRect(x,p.t+ch-3,barW,3);}
+    if(i%2===1||i===days.length-1){ctx.fillStyle='#9ca3af';ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillText(d.slice(5).replace('-','/'),x+barW/2,138);}
+  });
+  if(t.freq==='times'&&tgt>0){
+    const ty=p.t+ch*(1-tgt/maxV);
+    ctx.strokeStyle=themeCol;ctx.setLineDash([4,3]);ctx.lineWidth=1;ctx.globalAlpha=.55;
+    ctx.beginPath();ctx.moveTo(p.l,ty);ctx.lineTo(W-p.r,ty);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+  }
 }
 document.getElementById('ht-icons').querySelectorAll('.tag').forEach(t=>{
   t.addEventListener('click',()=>{document.getElementById('ht-icons').querySelectorAll('.tag').forEach(x=>x.classList.remove('sel'));t.classList.add('sel');selHtIc=t.dataset.ic;});
