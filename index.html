@@ -751,6 +751,7 @@ canvas{max-width:100%;display:block}
       <div><div class="slbl">雲端同步</div><div class="ssub" id="sync-status">資料自動同步至雲端</div></div>
       <button class="btn bg bs" id="btn-sync-now">立即同步</button>
     </div>
+    <div id="sync-info" style="font-size:11px;color:var(--tx2);padding:4px 2px 0;line-height:1.5"></div>
   </div>
   <div class="card">
     <div class="ct">通知設定</div>
@@ -1463,18 +1464,43 @@ function doGoogle(){
 function _localMod(){return parseInt(localStorage.getItem('lp__lm')||'0');}
 function _setLocalMod(){localStorage.setItem('lp__lm',Date.now().toString());}
 
+// Build the {key:value} snapshot of all synced (lp_*) localStorage keys, prefix stripped.
+function _localSnapshot(){
+  const data={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.startsWith('lp_'))data[k.slice(3)]=localStorage.getItem(k);
+  }
+  return data;
+}
+// Does a snapshot contain ANY real user-created content? (ignores defaults like wallets/cfg)
+// This is the safety gate that prevents an empty device from wiping the cloud.
+function _hasRealData(snap){
+  if(!snap)return false;
+  const DT=['evts','cds','goals','txs','notes','reminders','hlogs','glogs','acts','htrackers','htlogs','recurTxs','bgts'];
+  for(const k in snap){
+    if(!k.startsWith('acc_'))continue;
+    const dt=k.slice(k.lastIndexOf('_')+1);
+    if(!DT.includes(dt))continue;
+    try{
+      const v=JSON.parse(snap[k]);
+      if(Array.isArray(v)?v.length>0:(v&&typeof v==='object'&&Object.keys(v).length>0))return true;
+    }catch(_){}
+  }
+  return false;
+}
+
 let syncTimer,_syncInFlight=false;
 function syncToCloud(){
   if(!fauth.currentUser)return;
   clearTimeout(syncTimer);
   syncTimer=setTimeout(async()=>{
     if(_syncInFlight)return;
+    const data=_localSnapshot();
+    // SAFETY: never overwrite the cloud with an empty/dataless local snapshot.
+    // (A device that failed to pull would otherwise clobber another device's real data.)
+    if(!_hasRealData(data)){ updSyncInfo&&updSyncInfo(); return; }
     _syncInFlight=true;
-    const data={};
-    for(let i=0;i<localStorage.length;i++){
-      const k=localStorage.key(i);
-      if(k&&k.startsWith('lp_'))data[k.slice(3)]=localStorage.getItem(k);
-    }
     const ts=_localMod()||Date.now();
     try{
       await fdb.collection('users').doc(fauth.currentUser.uid).set({data,ts});
@@ -1484,7 +1510,7 @@ function syncToCloud(){
       console.warn('sync err',e);
       const el=document.getElementById('sync-status');
       if(el)el.textContent='⚠️ 同步失敗，將在連線後重試';
-    }finally{_syncInFlight=false;}
+    }finally{_syncInFlight=false;if(typeof updSyncInfo==='function')updSyncInfo();}
   },2000);
 }
 
@@ -1493,21 +1519,53 @@ async function loadFromCloud(force=false){
   const uid=fauth.currentUser.uid;
   const _timeout=ms=>new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms));
   let doc=null;
-  // 1. Try server with 4s timeout (prevents hanging on slow/no network)
-  try{ doc=await Promise.race([fdb.collection('users').doc(uid).get(), _timeout(4000)]); }
+  // 1. Try server with a generous timeout — a cold Firestore WebChannel handshake on
+  //    mobile can take several seconds; too short a timeout used to leave the device empty.
+  try{ doc=await Promise.race([fdb.collection('users').doc(uid).get(), _timeout(15000)]); }
   catch(_){
     // 2. Server failed/timed out → try Firestore local cache
     try{ doc=await fdb.collection('users').doc(uid).get({source:'cache'}); }
-    catch(__){ return; } // no cache yet — use localStorage as-is
+    catch(__){ return; } // no cache yet — use localStorage as-is (do NOT clobber)
   }
-  if(!doc||!doc.exists||!doc.data()?.data)return;
+  if(!doc||!doc.exists||!doc.data()?.data)return; // no cloud doc → keep local untouched
+  const cloudData=doc.data().data;
   const cloudTs =doc.data().ts||0;
   const localMod=_localMod();
-  // Apply cloud data if: cloud is newer, OR force=true (manual pull from another device)
-  if(force||cloudTs>=localMod){
-    Object.entries(doc.data().data).forEach(([k,v])=>localStorage.setItem('lp_'+k,v));
+  const localHasData=_hasRealData(_localSnapshot());
+  const cloudHasData=_hasRealData(cloudData);
+  // SAFETY: an empty cloud must NEVER wipe a device that still has real data.
+  // Instead treat this device as the source of truth and push it back up to restore the cloud.
+  if(localHasData && !cloudHasData){ _setLocalMod(); syncToCloud(); return; }
+  // Apply cloud when: forced (manual pull), cloud is newer/equal, OR this device has no data yet
+  // (a brand-new / freshly-installed device must always inherit the account's cloud data).
+  if(force || cloudTs>=localMod || !localHasData){
+    Object.entries(cloudData).forEach(([k,v])=>localStorage.setItem('lp_'+k,v));
     localStorage.setItem('lp__lm',cloudTs.toString());
   }
+}
+
+// Total user-created records currently on THIS device (rough health signal for the user)
+function _recordCount(){
+  let n=0;const snap=_localSnapshot();
+  for(const k in snap){
+    if(!k.startsWith('acc_'))continue;
+    try{const v=JSON.parse(snap[k]);
+      if(Array.isArray(v))n+=v.length;
+      else if(v&&typeof v==='object')n+=Object.keys(v).length;
+    }catch(_){}
+  }
+  return n;
+}
+// Show account id + record count + data version on the settings screen.
+// The account id is the key thing to compare across devices — if two devices show
+// DIFFERENT ids, they are logged into different accounts and will never share data.
+function updSyncInfo(){
+  const el=document.getElementById('sync-info');if(!el)return;
+  const u=fauth.currentUser;
+  if(!u){el.textContent='';return;}
+  const lm=_localMod();
+  const ver=lm?new Date(lm).toLocaleString('zh-HK',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+  el.innerHTML=`🆔 帳戶 <code style="font-size:10px">${u.uid.slice(0,10)}…</code><br>📦 本機 ${_recordCount()} 筆記錄 · 版本 ${ver}`;
 }
 
 // ══════════════════════════════════════
@@ -2866,6 +2924,7 @@ function rdSet(){
   document.getElementById('cur-sel').value=cfg.cur||'HK$';
   document.getElementById('sav-inp').value=sav||'';
   document.querySelectorAll('#theme-sw .sw2').forEach(s=>s.classList.toggle('on',s.dataset.c===cfg.theme));
+  updSyncInfo();
 }
 document.getElementById('lang-sel').addEventListener('change',function(){cfg.lang=this.value;save();rerender();snk('✅')});
 document.getElementById('cur-sel').addEventListener('change',function(){cfg.cur=this.value;save();rdFin();snk('✅')});
